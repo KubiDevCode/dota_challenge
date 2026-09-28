@@ -6,8 +6,9 @@ process.env.NODE_ENV = 'test'
 process.env.SESSION_SECRET ??= 'integration-test-session-secret-0000000000'
 
 const { IsString } = require('class-validator')
-const { BadRequestException, InternalServerErrorException } = require('@nestjs/common')
+const { BadRequestException, InternalServerErrorException, ParseUUIDPipe } = require('@nestjs/common')
 const { createApplication, createValidationPipe } = require('../dist/bootstrap')
+const { ActivateChallengeBodyDto } = require('../dist/challenges/challenges.dto')
 const { validateEnvironment } = require('../dist/config/environment')
 const { HttpExceptionFilter } = require('../dist/http-exception.filter')
 
@@ -51,32 +52,66 @@ test('unknown endpoints use the JSON error envelope', async () => {
   assert.equal(body.stack, undefined)
 })
 
+test('unauthenticated and invalid sessions receive 401 from /api/me', async () => {
+  assert.equal((await fetch(`${baseUrl}/api/me`)).status, 401)
+  assert.equal((await fetch(`${baseUrl}/api/me`, { headers: { cookie: 'aegis.sid=invalid' } })).status, 401)
+})
+
+test('logout is repeatable and clears the session cookie', async () => {
+  const options = { method: 'POST', headers: { origin: 'http://localhost:5173' } }
+  const first = await fetch(`${baseUrl}/api/auth/logout`, { ...options, redirect: 'manual' })
+  const second = await fetch(`${baseUrl}/api/auth/logout`, { ...options, redirect: 'manual' })
+  assert.equal(first.status, 204)
+  assert.equal(second.status, 204)
+  assert.match(first.headers.get('set-cookie') ?? '', /aegis\.sid=;/)
+})
+
+test('invalid Steam callback is redirected to the configured frontend URL', async () => {
+  const response = await fetch(`${baseUrl}/api/auth/steam/callback?state=untrusted`, { redirect: 'manual' })
+  assert.equal(response.status, 302)
+  assert.equal(response.headers.get('location'), 'http://localhost:5173/?steamAuth=failed')
+})
+
 test('challenge routes validate input and require the authentication boundary', async () => {
   const id = '00000000-0000-4000-8000-000000000001'
   assert.equal((await fetch(`${baseUrl}/api/challenges?page=0`)).status, 400)
   assert.equal((await fetch(`${baseUrl}/api/challenges?limit=51`)).status, 400)
   assert.equal((await fetch(`${baseUrl}/api/challenges?mode=invalid`)).status, 400)
-  assert.equal((await fetch(`${baseUrl}/api/challenges/invalid/activate`, { method: 'POST' })).status, 400)
-  assert.equal((await fetch(`${baseUrl}/api/challenges/${id}/activate`, { method: 'POST' })).status, 401)
-  assert.equal((await fetch(`${baseUrl}/api/challenges/${id}/activate`, {
-    method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ activatedAt: new Date().toISOString() }),
-  })).status, 400)
+  await assert.rejects(new ParseUUIDPipe().transform('invalid', { type: 'param' }), BadRequestException)
+  await assert.rejects(createValidationPipe().transform({ activatedAt: new Date().toISOString() }, {
+    type: 'body', metatype: ActivateChallengeBodyDto,
+  }), BadRequestException)
+  const sameOrigin = { origin: 'http://localhost:5173' }
+  assert.equal((await fetch(`${baseUrl}/api/challenges/${id}/activate`, { method: 'POST', headers: sameOrigin })).status, 401)
   assert.equal((await fetch(`${baseUrl}/api/me/challenges`)).status, 401)
-  assert.equal((await fetch(`${baseUrl}/api/me/challenges/${id}`, { method: 'DELETE' })).status, 401)
+  assert.equal((await fetch(`${baseUrl}/api/me/challenges/${id}`, { method: 'DELETE', headers: sameOrigin })).status, 401)
+})
+
+test('state-changing API calls require the configured frontend Origin', async () => {
+  const invalid = await fetch(`${baseUrl}/api/auth/logout`, { method: 'POST', headers: { origin: 'https://attacker.example' } })
+  const missing = await fetch(`${baseUrl}/api/auth/logout`, { method: 'POST' })
+  assert.equal(invalid.status, 403)
+  assert.equal(missing.status, 403)
 })
 
 test('environment supplies defaults and validates the database URL, port, host and mode', () => {
-  const databaseEnv = { DATABASE_URL: 'postgresql://localhost:5432/aegis_tests' }
+  const databaseEnv = {
+    DATABASE_URL: 'postgresql://localhost:5432/aegis_tests',
+    REDIS_URL: 'redis://localhost:6379',
+    NODE_ENV: 'test', SESSION_SECRET: 'unit-test-session-secret-0000000000000000',
+  }
   assert.equal(validateEnvironment(databaseEnv).API_PORT, 3000)
   assert.equal(validateEnvironment({ ...databaseEnv, API_PORT: '3100' }).API_PORT, 3100)
   for (const DATABASE_URL of ['', 'mysql://localhost/db', 'postgresql:///db']) {
-    assert.throws(() => validateEnvironment({ DATABASE_URL }), /DATABASE_URL/)
+    assert.throws(() => validateEnvironment({ ...databaseEnv, DATABASE_URL }), /DATABASE_URL/)
   }
   for (const API_PORT of ['', 'abc', '1.5', '0', '-1', '65536']) {
     assert.throws(() => validateEnvironment({ ...databaseEnv, API_PORT }), /API_PORT/)
   }
   assert.throws(() => validateEnvironment({ ...databaseEnv, API_HOST: '' }), /API_HOST/)
   assert.throws(() => validateEnvironment({ ...databaseEnv, NODE_ENV: 'invalid' }), /NODE_ENV/)
+  assert.throws(() => validateEnvironment({ ...databaseEnv, SESSION_SECRET: 'short' }), /SESSION_SECRET/)
+  assert.throws(() => validateEnvironment({ ...databaseEnv, NODE_ENV: 'production' }), /APP_URL, STEAM_REALM and STEAM_RETURN_URL/)
 })
 
 test('validation transforms DTOs and rejects invalid or undeclared fields', async () => {

@@ -9,6 +9,16 @@ export interface SteamOpenIdProvider {
   verifyCallback(request: Request, state: string): Promise<SteamIdentity>
 }
 
+export const STEAM_PROVIDER = Symbol('STEAM_PROVIDER')
+
+export function steamIdentityFromClaimedIdentifier(claimedIdentifier: string | undefined): SteamIdentity {
+  const match = typeof claimedIdentifier === 'string'
+    ? /^https:\/\/steamcommunity\.com\/openid\/id\/(\d{17})$/.exec(claimedIdentifier)
+    : null
+  if (!match) throw new Error('Steam returned an invalid identity')
+  return { steamId64: match[1] }
+}
+
 @Injectable()
 export class SteamOpenIdService implements SteamOpenIdProvider {
   constructor(private readonly config: ConfigService) {}
@@ -32,12 +42,10 @@ export class SteamOpenIdService implements SteamOpenIdProvider {
       })
     })
 
-    if (!result.authenticated || !result.claimedIdentifier) {
+    if (!result.authenticated) {
       throw new Error('Steam assertion was not authenticated')
     }
-    const match = /^https:\/\/steamcommunity\.com\/openid\/id\/(\d{17})$/.exec(result.claimedIdentifier)
-    if (!match) throw new Error('Steam returned an invalid identity')
-    return { steamId64: match[1] }
+    return steamIdentityFromClaimedIdentifier(result.claimedIdentifier)
   }
 
   private relyingParty(state: string): RelyingParty {
@@ -46,7 +54,7 @@ export class SteamOpenIdService implements SteamOpenIdProvider {
     return new RelyingParty(
       returnUrl.toString(),
       this.config.getOrThrow<string>('STEAM_REALM'),
-      false,
+      true, // Stateless mode uses provider-side check_authentication across API replicas.
       true,
       [],
     )

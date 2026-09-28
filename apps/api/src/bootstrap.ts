@@ -1,5 +1,6 @@
 import 'reflect-metadata'
 import { ValidationPipe } from '@nestjs/common'
+import { ConfigService } from '@nestjs/config'
 import { HttpAdapterHost, NestFactory } from '@nestjs/core'
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger'
 import { API_PREFIX, APP_NAME } from '@aegis-trials/shared'
@@ -12,7 +13,7 @@ export function createValidationPipe() {
 
 export async function createApplication() {
   const app = await NestFactory.create(AppModule, { abortOnError: false })
-  if (app.get(ConfigService).get<string>('NODE_ENV') === 'production') app.set('trust proxy', 1)
+  if (app.get(ConfigService).get<string>('NODE_ENV') === 'production') app.getHttpAdapter().getInstance().set('trust proxy', 1)
   app.setGlobalPrefix(API_PREFIX.slice(1))
   app.useGlobalPipes(createValidationPipe())
   app.useGlobalFilters(new HttpExceptionFilter(app.get(HttpAdapterHost)))

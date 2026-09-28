@@ -9,7 +9,11 @@ const url = process.env.TEST_DATABASE_URL
 test('challenge HTTP lifecycle and concurrent activation against PostgreSQL',
   url ? {} : { skip: 'Set TEST_DATABASE_URL to a disposable migrated PostgreSQL database' }, async () => {
     process.env.DATABASE_URL = url
+    process.env.NODE_ENV = 'test'
     const { createApplication } = require('../dist/bootstrap')
+    const { AuthGuard } = require('../dist/auth/auth.guards')
+    const { ChallengesModule } = require('../dist/challenges/challenges.module')
+    const { UnauthorizedException } = require('@nestjs/common')
     const db = new PrismaClient({ adapter: new PrismaPg({ connectionString: url }) })
     const app = await createApplication()
     app.useLogger(false)
@@ -42,16 +46,21 @@ test('challenge HTTP lifecycle and concurrent activation against PostgreSQL',
       const future = await makeChallenge('Future', 'PUBLISHED', new Date(Date.now() + 86400000))
       const available = await Promise.all([1, 2, 3, 4].map(n => makeChallenge(`Available ${n}`)))
 
-      // Test-only middleware stands in for a verified auth middleware. Production has no header-based auth.
-      app.use((req, _res, next) => {
+      // Test-only guard replacement supplies an authenticated principal without Steam or Redis.
+      app.select(ChallengesModule).get(AuthGuard, { strict: true }).canActivate = (context) => {
+        const req = context.switchToHttp().getRequest()
         const id = req.headers['x-test-user-id']
-        if (id === owner.id || id === other.id) req.user = { id }
-        next()
-      })
+        if (id !== owner.id && id !== other.id) throw new UnauthorizedException()
+        req.currentUser = { id }
+        return true
+      }
       await app.listen(0, '127.0.0.1')
       const base = await app.getUrl()
       const request = (path, method = 'GET', user = owner) => fetch(`${base}/api${path}`, {
-        method, headers: user ? { 'x-test-user-id': user.id } : {},
+        method, headers: {
+          ...(user ? { 'x-test-user-id': user.id } : {}),
+          ...(method !== 'GET' ? { origin: 'http://localhost:5173' } : {}),
+        },
       })
 
       const listing = await request('/challenges')

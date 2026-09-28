@@ -102,9 +102,13 @@ test('serialized concurrent activations at two active records leave at most thre
 test('listing and cancellation are scoped to owner and active state', async () => {
   const { service, challenges, enrollments } = fixture()
   const mine = await service.activate(owner, challenges[0].id)
+  const completion = { id: '123', startedAt: new Date(), duration: 1500, matchMode: 2 }
+  enrollments[0].completedByMatch = completion
   enrollments.push({ id: 'other', userId: other, challengeId: challenges[1].id, status: 'SUCCEEDED',
     activatedAt: new Date(), attemptsChecked: 1, completedAt: new Date(), completedByMatchId: '123' })
-  assert.deepEqual((await service.listMine(owner)).map(e => e.id), [mine.id])
+  const ownRows = await service.listMine(owner)
+  assert.deepEqual(ownRows.map(e => e.id), [mine.id])
+  assert.deepEqual(ownRows[0].completedByMatch, completion)
   await assert.rejects(service.cancel(other, mine.id), e => status(e, 404))
   await assert.rejects(service.cancel(other, 'other'), e => status(e, 409))
   assert.equal((await service.cancel(owner, mine.id)).status, 'CANCELLED')

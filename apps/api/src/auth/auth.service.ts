@@ -63,5 +63,4 @@ export class AuthService {
   }
 }
 
-export const STEAM_PROVIDER = Symbol('STEAM_PROVIDER')
 export type SteamProvider = SteamOpenIdProvider

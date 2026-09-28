@@ -69,6 +69,22 @@ class AuthSessionMiddleware implements NestMiddleware {
   }
 }
 
+@Injectable()
+class CsrfMiddleware implements NestMiddleware {
+  constructor(private readonly config: ConfigService) {}
+
+  use(request: Request, response: Response, next: NextFunction): void {
+    if (!['POST', 'PUT', 'PATCH', 'DELETE'].includes(request.method)) return next()
+    const origin = request.get('origin')
+    const trustedOrigin = new URL(this.config.getOrThrow<string>('APP_URL')).origin
+    if (origin !== trustedOrigin) {
+      response.status(403).json({ statusCode: 403, message: 'Invalid request origin' })
+      return
+    }
+    next()
+  }
+}
+
 @Module({
   imports: [DatabaseModule, UsersModule],
   controllers: [AuthController],
@@ -79,13 +95,14 @@ class AuthSessionMiddleware implements NestMiddleware {
     SteamOpenIdService,
     { provide: STEAM_PROVIDER, useExisting: SteamOpenIdService },
     AuthSessionMiddleware,
+    CsrfMiddleware,
   ],
   exports: [AuthGuard, RoleGuard],
 })
 export class AuthModule implements NestModule, OnModuleInit, OnModuleDestroy {
   constructor(private readonly sessions: AuthSessionMiddleware) {}
 
-  configure(consumer: MiddlewareConsumer): void { consumer.apply(AuthSessionMiddleware).forRoutes('*') }
+  configure(consumer: MiddlewareConsumer): void { consumer.apply(AuthSessionMiddleware, CsrfMiddleware).forRoutes('*') }
   onModuleInit(): Promise<void> { return this.sessions.connect() }
   onModuleDestroy(): Promise<void> { return this.sessions.close() }
 }

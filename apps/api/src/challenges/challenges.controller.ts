@@ -1,7 +1,8 @@
-import { Body, Controller, Delete, Get, Param, ParseUUIDPipe, Post, Query, Req } from '@nestjs/common'
+import { Body, Controller, Delete, Get, Param, ParseUUIDPipe, Post, Query, UseGuards } from '@nestjs/common'
 import { ApiTags } from '@nestjs/swagger'
-import { requireCurrentUserId } from '../common/current-user'
-import type { AuthenticatedRequest } from '../common/current-user'
+import { AuthenticatedUser } from '../auth/auth.decorators'
+import { AuthGuard } from '../auth/auth.guards'
+import type { CurrentUser } from '../auth/auth.types'
 import { ActivateChallengeBodyDto, ListChallengesQueryDto } from './challenges.dto'
 import { ChallengesService } from './challenges.service'
 
@@ -14,24 +15,26 @@ export class ChallengesController {
   list(@Query() query: ListChallengesQueryDto) { return this.challenges.list(query) }
 
   @Post(':id/activate')
-  activate(@Req() request: AuthenticatedRequest, @Param('id', ParseUUIDPipe) id: string, @Body() body: ActivateChallengeBodyDto) {
+  @UseGuards(AuthGuard)
+  activate(@AuthenticatedUser() user: CurrentUser, @Param('id', ParseUUIDPipe) id: string, @Body() body: ActivateChallengeBodyDto) {
     void body
-    return this.challenges.activate(requireCurrentUserId(request), id)
+    return this.challenges.activate(user.id, id)
   }
 }
 
 @ApiTags('challenges')
 @Controller('me/challenges')
+@UseGuards(AuthGuard)
 export class MyChallengesController {
   constructor(private readonly challenges: ChallengesService) {}
 
   @Get()
-  list(@Req() request: AuthenticatedRequest) {
-    return this.challenges.listMine(requireCurrentUserId(request))
+  list(@AuthenticatedUser() user: CurrentUser) {
+    return this.challenges.listMine(user.id)
   }
 
   @Delete(':userChallengeId')
-  cancel(@Req() request: AuthenticatedRequest, @Param('userChallengeId', ParseUUIDPipe) id: string) {
-    return this.challenges.cancel(requireCurrentUserId(request), id)
+  cancel(@AuthenticatedUser() user: CurrentUser, @Param('userChallengeId', ParseUUIDPipe) id: string) {
+    return this.challenges.cancel(user.id, id)
   }
 }

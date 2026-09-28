@@ -62,7 +62,10 @@ export class UsersService {
 
   private profileFields(identity: SteamIdentity): { displayName?: string; avatarUrl?: string } {
     const fields: { displayName?: string; avatarUrl?: string } = {}
-    const displayName = identity.displayName?.trim().replace(/[\u0000-\u001f\u007f]/g, '').slice(0, 128)
+    const displayName = identity.displayName?.trim().split('').filter((character) => {
+      const code = character.charCodeAt(0)
+      return code > 31 && code !== 127
+    }).join('').slice(0, 128)
     if (displayName) fields.displayName = displayName
     if (identity.avatarUrl) {
       try {

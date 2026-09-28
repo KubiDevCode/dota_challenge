@@ -1,4 +1,4 @@
-import { Controller, ForbiddenException, Get, HttpCode, HttpStatus, Post, Req, Res, UseGuards } from '@nestjs/common'
+import { Controller, ForbiddenException, Get, HttpCode, HttpStatus, Logger, Post, Req, Res, UseGuards } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import { ApiCookieAuth, ApiOkResponse, ApiOperation, ApiTags, ApiUnauthorizedResponse } from '@nestjs/swagger'
 import type { Request, Response } from 'express'
@@ -10,6 +10,8 @@ import type { CurrentUser } from './auth.types'
 @ApiTags('auth')
 @Controller()
 export class AuthController {
+  private readonly logger = new Logger(AuthController.name)
+
   constructor(private readonly auth: AuthService, private readonly config: ConfigService) {}
 
   @Get('auth/steam')
@@ -21,7 +23,8 @@ export class AuthController {
     await new Promise<void>((resolve, reject) => request.session.save((error) => error ? reject(error) : resolve()))
     try {
       response.redirect(302, await this.auth.createSteamAuthenticationUrl(state))
-    } catch {
+    } catch (error) {
+      this.logger.error('Could not start Steam authentication', error instanceof Error ? error.stack : undefined)
       response.redirect(302, this.auth.frontendRedirect('failed'))
     }
   }
@@ -40,7 +43,8 @@ export class AuthController {
       request.session.userId = userId
       await new Promise<void>((resolve, reject) => request.session.save((error) => error ? reject(error) : resolve()))
       response.redirect(302, this.auth.frontendRedirect('success'))
-    } catch {
+    } catch (error) {
+      this.logger.error('Steam callback processing failed', error instanceof Error ? error.stack : undefined)
       response.redirect(302, this.auth.frontendRedirect('failed'))
     }
   }

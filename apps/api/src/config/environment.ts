@@ -26,16 +26,22 @@ export function validateEnvironment(env: Record<string, unknown>) {
     }
   }
 
+  if (nodeEnv === 'production' && ['APP_URL', 'STEAM_REALM', 'STEAM_RETURN_URL'].some((key) => !env[key])) {
+    throw new Error('APP_URL, STEAM_REALM and STEAM_RETURN_URL must be configured in production')
+  }
   const appUrl = urlVariable('APP_URL', 'http://localhost:5173')
   const steamRealm = urlVariable('STEAM_REALM', 'http://localhost:3000/api/auth/steam')
   const steamReturnUrl = urlVariable('STEAM_RETURN_URL', 'http://localhost:3000/api/auth/steam/callback')
+  if (nodeEnv === 'production' && [appUrl, steamRealm, steamReturnUrl].some((value) => new URL(value).protocol !== 'https:')) {
+    throw new Error('APP_URL, STEAM_REALM and STEAM_RETURN_URL must use HTTPS in production')
+  }
   if (!steamReturnUrl.startsWith(`${steamRealm}/`) && steamReturnUrl !== steamRealm) {
     throw new Error('STEAM_RETURN_URL must be within STEAM_REALM')
   }
 
-  const redisUrl = env.REDIS_URL ?? 'redis://localhost:6379'
+  const redisUrl = env.REDIS_URL ?? (nodeEnv === 'test' ? 'redis://localhost:6379' : undefined)
   if (typeof redisUrl !== 'string' || !/^rediss?:\/\//.test(redisUrl)) {
-    throw new Error('REDIS_URL must be a redis:// or rediss:// URL')
+    throw new Error('REDIS_URL must be configured as a redis:// or rediss:// URL')
   }
 
   const sessionSecret = env.SESSION_SECRET
@@ -43,8 +49,14 @@ export function validateEnvironment(env: Record<string, unknown>) {
   if (sessionSecret !== undefined && (typeof sessionSecret !== 'string' || sessionSecret.length < 32)) {
     throw new Error('SESSION_SECRET must be at least 32 characters')
   }
+  if (typeof sessionSecret === 'string' && /^(replace-with|change-me|generate-)/i.test(sessionSecret)) {
+    throw new Error('SESSION_SECRET must be replaced with a random secret')
+  }
 
   const sessionCookieDomain = env.SESSION_COOKIE_DOMAIN
+  if (sessionCookieDomain !== undefined && (typeof sessionCookieDomain !== 'string' || !sessionCookieDomain.trim() || sessionCookieDomain.includes('/'))) {
+    throw new Error('SESSION_COOKIE_DOMAIN must be a hostname without a path')
+  }
   const sessionCookiePath = env.SESSION_COOKIE_PATH ?? '/'
   if (typeof sessionCookiePath !== 'string' || !sessionCookiePath.startsWith('/')) {
     throw new Error('SESSION_COOKIE_PATH must start with /')

@@ -4,7 +4,10 @@ import { Prisma } from '../database/generated/client'
 import type { ListChallengesQueryDto } from './challenges.dto'
 
 export const challengeInclude = { rules: true } as const
-export const userChallengeInclude = { challenge: { include: challengeInclude } } as const
+export const userChallengeInclude = {
+  challenge: { include: challengeInclude },
+  completedByMatch: { select: { id: true, startedAt: true, duration: true, matchMode: true } },
+} as const
 
 @Injectable()
 export class ChallengesRepository {

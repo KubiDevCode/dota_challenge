@@ -6,7 +6,10 @@ import { ChallengesRepository } from './challenges.repository'
 import type { ListChallengesQueryDto } from './challenges.dto'
 
 type ChallengeWithRules = Challenge & { rules: ChallengeRule[] }
-type EnrollmentWithChallenge = UserChallenge & { challenge: ChallengeWithRules }
+type EnrollmentWithChallenge = UserChallenge & {
+  challenge: ChallengeWithRules
+  completedByMatch?: { id: string; startedAt: Date; duration: number; matchMode: number } | null
+}
 
 function publicChallenge(challenge: ChallengeWithRules) {
   return {
@@ -35,6 +38,7 @@ function publicEnrollment(enrollment: EnrollmentWithChallenge) {
     attemptsChecked: enrollment.attemptsChecked,
     completedAt: enrollment.completedAt,
     completedByMatchId: enrollment.completedByMatchId,
+    completedByMatch: enrollment.completedByMatch ?? null,
   }
 }
 
