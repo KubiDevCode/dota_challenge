@@ -8,7 +8,7 @@ import type { ListChallengesQueryDto } from './challenges.dto'
 type ChallengeWithRules = Challenge & { rules: ChallengeRule[] }
 type EnrollmentWithChallenge = UserChallenge & {
   challenge: ChallengeWithRules
-  completedByMatch?: { id: string; startedAt: Date; duration: number; matchMode: number } | null
+  completedByMatch?: { id: string; startedAt: Date; duration: number | null; matchMode: number | null } | null
 }
 
 function publicChallenge(challenge: ChallengeWithRules) {

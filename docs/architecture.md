@@ -22,7 +22,7 @@ Web remains ESM with bundler module resolution; API/Worker use Node16 resolution
 The base TypeScript options live in tsconfig.base.json; server options in tsconfig.node.json.
 
 API is a modular monolith. Controllers are HTTP adapters, services implement use cases, persistence and
-providers are isolated. No business modules exist yet. The worker is permitted to become a standalone
+providers are isolated. The worker is permitted to become a standalone
 NestJS application when background modules are introduced; it currently needs no DI container.
 
 GET /api/health returns `{ "status": "ok", "service": "api" }`: process liveness only, not database readiness.
@@ -77,8 +77,8 @@ interface MatchProvider {
 `ProviderMatch` contains a string match ID, start time, optional duration, normalized mode
 (`RANKED`, `ALL_PICK`, `UNSUPPORTED`), and normalized per-player metrics. Absent STRATZ stats remain
 absent, so the rule engine can later return `PENDING`. Provider metadata and raw match payload
-are available through `source` for a future persistence layer. The adapter never writes to Prisma.
-It is registered through a Nest module but no match processing pipeline calls it yet.
+are available through `source` for persistence. The adapter never writes to Prisma;
+the match processing service calls it through the `MatchProvider` contract.
 
 The player history query fetches the latest 50 matches without a cursor. With `afterMatchId`,
 it scans descending pages until that match ID is reached, the history ends, or ten pages have
@@ -88,14 +88,31 @@ configurable timeout (`STRATZ_TIMEOUT_MS`, default 10000). Missing token affects
 calls. Rate limit errors expose retryability and `Retry-After`; external error text is not logged.
 OpenDota is not implemented.
 
-Prisma's current `PlayerMatchStats` required columns cannot store missing metrics. A future
-persistence layer must wait for complete required stats or change that schema deliberately;
-this integration does not turn missing values into zero.
+The match processing service in `apps/api/src/matches` can be called by a future worker or
+manual refresh service. `processPlayerMatches` fetches complete match details and processes
+history oldest first. `processMatch` processes one specified match; callers handling historical
+matches should use the history method to establish chronological order. A single-match
+challenge claims the first eligible match it processes. If that evaluation is `PENDING`, later
+matches cannot replace the claimed attempt. Reprocessing the same match can resolve it.
+
+One transaction locks the user row, upserts the match and that user's nullable player stats,
+evaluates each eligible active challenge, and writes the evaluation. Missing provider metrics
+remain null; later imports fill them without erasing already known metrics. Eligible modes are
+public Ranked and All Pick, further restricted by `Challenge.allowedMatchModes` when configured.
+The match must start strictly after activation. Final evaluation records are not recalculated.
+`attemptsChecked` counts final PASS/FAIL evaluations, not PENDING records. A PERSISTENT FAIL
+leaves the challenge active; a SINGLE_MATCH FAIL ends it. A PASS changes status to `SUCCEEDED`.
+
+The same transaction creates one `RewardLedger` row per completion, increments global XP, and
+increments a season score when the match falls within a non-draft season. The ledger's primary
+key and the user row lock protect retries and concurrent processors. A match outside a season
+still awards XP and records zero season points. Level is derived from total XP and the configured
+`LevelThreshold` rows rather than stored as mutable user state.
 
 ## Scope boundary
 
 Deferred: OpenDota,
-BullMQ, Challenge Rule Engine/API, XP, seasons, leaderboard, achievements, admin and production deployment.
+BullMQ, leaderboard, achievements, admin and production deployment.
 No external service is required to run this foundation.
 
 Infrastructure follows the official NestJS documentation for

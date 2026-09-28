@@ -106,7 +106,7 @@ model Challenge {
   mode               ChallengeMode
   xpReward           Int
   seasonPointsReward Int                 @default(0)
-  // Empty means all Dota game modes are permitted.
+  // Empty means both supported MVP matchmaking modes are permitted.
   allowedMatchModes  Int[]
   publicationStatus  PublicationStatus   @default(DRAFT)
   availableFrom      DateTime?           @db.Timestamptz(3)
@@ -159,8 +159,9 @@ model Match {
   id          String        @id @db.VarChar(20)
   provider    MatchProvider @default(STRATZ)
   startedAt   DateTime      @db.Timestamptz(3)
-  duration    Int
-  matchMode   Int
+  duration    Int?
+  matchMode   Int?
+  lobbyType   Int?
   rawPayload  Json?         @db.JsonB
   createdAt   DateTime      @default(now()) @db.Timestamptz(3)
   updatedAt   DateTime      @updatedAt @db.Timestamptz(3)
@@ -172,16 +173,16 @@ model Match {
 model PlayerMatchStats {
   matchId           String   @db.VarChar(20)
   userId            String   @db.Uuid
-  win               Boolean
-  kills             Int
-  deaths            Int
-  assists           Int
+  win               Boolean?
+  kills             Int?
+  deaths            Int?
+  assists           Int?
   killParticipation Float?   @db.DoublePrecision
-  lastHits          Int
-  heroDamage        Int
-  towerDamage       Int
-  wardsPlaced       Int
-  heroId            Int
+  lastHits          Int?
+  heroDamage        Int?
+  towerDamage       Int?
+  wardsPlaced       Int?
+  heroId            Int?
   createdAt         DateTime @default(now()) @db.Timestamptz(3)
   updatedAt         DateTime @updatedAt @db.Timestamptz(3)
   match             Match    @relation(fields: [matchId], references: [id], onDelete: Restrict)

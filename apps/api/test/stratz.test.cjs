@@ -65,6 +65,7 @@ test('All Pick is allowed; Turbo, bots, lobby and unknown modes are unsupported'
   assert.equal(normalizeGameMode(1, 4, 5), 'UNSUPPORTED')
   assert.equal(normalizeGameMode(1, 1, 10), 'UNSUPPORTED')
   assert.equal(normalizeGameMode(1, 0, 5), 'UNSUPPORTED')
+  assert.equal(normalizeGameMode(1, 0, undefined), 'UNSUPPORTED')
   assert.equal(normalizeGameMode(undefined, 7, 10), 'UNSUPPORTED')
   assert.equal(normalizeGameMode(1, 7, 10), 'RANKED')
 })

@@ -51,7 +51,8 @@ export function normalizeGameMode(
   lobbyTypeId: number | undefined,
   numHumanPlayers: number | undefined,
 ): ProviderGameMode {
-  if (numHumanPlayers !== undefined && numHumanPlayers < 10) return 'UNSUPPORTED'
+  // A full human lobby must be confirmed; missing count cannot prove bots absent.
+  if (numHumanPlayers !== 10) return 'UNSUPPORTED'
   if (lobbyTypeId === 7 && (gameModeId === 22 || gameModeId === 1)) return 'RANKED'
   if (lobbyTypeId === 0 && gameModeId === 1) return 'ALL_PICK'
   return 'UNSUPPORTED'
