@@ -1,0 +1,1 @@
+export { leaders } from './data'

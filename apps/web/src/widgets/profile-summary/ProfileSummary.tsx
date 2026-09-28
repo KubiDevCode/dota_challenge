@@ -1,0 +1,20 @@
+import { Award, BarChart3, CalendarDays, CheckCircle2, Crown, Flame, Gamepad2, Sparkles, Trophy, UserRound, Zap } from 'lucide-react'
+import { Achievement } from '../../entities/achievement'
+
+export function ProfileCover() { return <>
+      <section className="profile-cover"><div className="hero-grid" /><div className="relative z-10 mx-auto max-w-[1180px] px-5 pb-8 pt-14 lg:px-10"><div className="flex flex-col justify-between gap-6 sm:flex-row sm:items-end"><div className="flex items-center gap-5"><div className="profile-avatar"><UserRound size={38} /></div><div><div className="mb-2 flex items-center gap-2"><span className="online-dot" /> <span className="text-[10px] font-bold tracking-[.16em] text-[#7f7c75]">В СЕТИ</span></div><h1 className="font-display text-3xl font-semibold sm:text-5xl">InvokerEnjoyer</h1><p className="mt-2 text-sm text-[#8f8c85]">Steam ID: 76561198123456789 · На сайте с сентября 2026</p></div></div><button className="secondary-button"><Gamepad2 size={16} /> Профиль Steam</button></div></div></section>
+</> }
+
+export function ProfileSidebar() { return <aside className="space-y-5">
+            <div className="profile-panel text-center"><div className="rank-emblem small mx-auto"><Crown size={34} strokeWidth={1.3} /></div><div className="mt-5 text-[10px] font-bold tracking-[.18em] text-[#7d7972]">ТЕКУЩИЙ РАНГ</div><h2 className="mt-1 font-display text-2xl">Искатель испытаний</h2><div className="mt-5 flex justify-between text-xs"><span className="text-[#817e78]">7 уровень</span><span>680 / 1 000 XP</span></div><div className="mt-2 h-2 overflow-hidden rounded-full bg-black/40"><div className="h-full w-[68%] rounded-full bg-gradient-to-r from-[#9f2e24] to-[#ef7059]" /></div><div className="mt-6 grid grid-cols-2 divide-x divide-white/8 border-t border-white/8 pt-5"><MiniStat value="#1 284" label="место" /><MiniStat value="680" label="season points" /></div></div>
+            <div className="profile-panel"><div className="section-label"><Award size={14} /> ДОСТИЖЕНИЯ</div><div className="mt-5 grid grid-cols-3 gap-3"><Achievement icon={Flame} label="Серия 7" active /><Achievement icon={Zap} label="Быстрый" active /><Achievement icon={Trophy} label="Топ-100" /></div><button className="mt-5 w-full text-center text-xs text-[#918d85] transition hover:text-white">Все достижения →</button></div>
+</aside> }
+
+export function ProfileStats() { return <>
+            <div className="grid grid-cols-2 gap-3 md:grid-cols-4"><StatCard icon={CheckCircle2} value="14" label="Выполнено" /><StatCard icon={BarChart3} value="53%" label="Винрейт" /><StatCard icon={Sparkles} value="3 240" label="Всего XP" /><StatCard icon={CalendarDays} value="4 дня" label="Текущая серия" /></div>
+
+            <div className="profile-panel"><div className="flex items-center justify-between"><div><div className="section-label"><BarChart3 size={14} /> СТАТИСТИКА</div><h2 className="mt-2 font-display text-2xl">Последние 30 дней</h2></div><button className="filter-active border border-white/8">30 дней</button></div><div className="activity-chart mt-8">{[35, 58, 42, 68, 51, 78, 63, 86, 73, 91, 67, 82, 96, 76].map((height, index) => <div key={index} className="activity-bar-wrap"><div className={`activity-bar ${index === 12 ? 'highlight' : ''}`} style={{ height: `${height}%` }} /></div>)}</div><div className="mt-3 flex justify-between text-[9px] uppercase tracking-[.1em] text-[#5f5c57]"><span>30 авг</span><span>7 сен</span><span>14 сен</span><span>21 сен</span><span>Сегодня</span></div></div>
+</> }
+
+function MiniStat({ value, label }: { value: string; label: string }) { return <div><div className="font-display text-lg font-semibold">{value}</div><div className="mt-1 text-[8px] uppercase tracking-[.12em] text-[#706d67]">{label}</div></div> }
+function StatCard({ icon: Icon, value, label }: { icon: typeof Flame; value: string; label: string }) { return <div className="stat-card"><Icon size={17} /><div className="mt-4 font-display text-2xl">{value}</div><div className="mt-1 text-[9px] uppercase tracking-[.1em] text-[#77746e]">{label}</div></div> }

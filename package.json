@@ -1,0 +1,40 @@
+{
+  "name": "aegis-trials",
+  "private": true,
+  "version": "0.0.1",
+  "type": "module",
+  "engines": {
+    "node": ">=22.19.0",
+    "npm": ">=10"
+  },
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "dev": "npm run build:shared && concurrently --kill-others --names shared,web,api,worker \"npm run dev -w @aegis-trials/shared\" \"npm run dev -w @aegis-trials/web\" \"npm run dev -w @aegis-trials/api\" \"npm run dev -w @aegis-trials/worker\"",
+    "dev:web": "npm run build:shared && npm run dev -w @aegis-trials/web",
+    "dev:api": "npm run build:shared && npm run dev -w @aegis-trials/api",
+    "dev:worker": "npm run build:shared && npm run dev -w @aegis-trials/worker",
+    "build:shared": "npm run build -w @aegis-trials/shared",
+    "db:generate": "prisma generate",
+    "db:migrate": "prisma migrate deploy",
+    "build": "npm run build:shared && npm run build -w @aegis-trials/web -w @aegis-trials/api -w @aegis-trials/worker",
+    "test": "npm run build:shared && npm run test --workspaces --if-present",
+    "typecheck": "npm run build:shared && npm run typecheck --workspaces",
+    "lint": "eslint . --max-warnings 0",
+    "preview": "npm run preview -w @aegis-trials/web"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/node": "^22.19.0",
+    "concurrently": "^9.2.1",
+    "dotenv": "^16.6.1",
+    "eslint": "^10.11.0",
+    "globals": "^16.0.0",
+    "prisma": "7.10.0",
+    "ts-node": "^10.9.2",
+    "typescript": "~5.7.2",
+    "typescript-eslint": "^8.71.0"
+  }
+}

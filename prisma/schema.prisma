@@ -1,0 +1,239 @@
+generator client {
+  provider            = "prisma-client"
+  output              = "../apps/api/src/database/generated"
+  moduleFormat        = "cjs"
+  importFileExtension = ""
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum UserRole {
+  USER
+  ADMIN
+}
+enum SeasonStatus {
+  DRAFT
+  ACTIVE
+  ENDED
+}
+enum ChallengeDifficulty {
+  EASY
+  MEDIUM
+  HARD
+}
+enum ChallengeMode {
+  PERSISTENT
+  SINGLE_MATCH
+}
+enum PublicationStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+enum RuleMetric {
+  win
+  kills
+  deaths
+  assists
+  killParticipation
+  lastHits
+  heroDamage
+  towerDamage
+  wardsPlaced
+  duration
+  heroId
+}
+enum RuleOperator {
+  EQ
+  GTE
+  LTE
+}
+enum UserChallengeStatus {
+  ACTIVE
+  CANCELLED
+  SUCCEEDED
+  FAILED
+}
+enum EvaluationStatus {
+  PASS
+  FAIL
+  PENDING
+}
+enum MatchProvider {
+  STRATZ
+}
+
+model User {
+  id          String   @id @default(uuid()) @db.Uuid
+  steamId64   String   @unique @db.VarChar(20)
+  accountId32 BigInt   @unique
+  displayName String   @db.VarChar(128)
+  avatarUrl   String?
+  role        UserRole @default(USER)
+  totalXp     Int      @default(0)
+  createdAt   DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt   DateTime @updatedAt @db.Timestamptz(3)
+  challenges  UserChallenge[]
+  matchStats  PlayerMatchStats[]
+  seasonScores SeasonScore[]
+}
+
+model Season {
+  id        String       @id @default(uuid()) @db.Uuid
+  name      String       @db.VarChar(128)
+  startsAt  DateTime     @db.Timestamptz(3)
+  endsAt    DateTime     @db.Timestamptz(3)
+  status    SeasonStatus @default(DRAFT)
+  createdAt DateTime     @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime     @updatedAt @db.Timestamptz(3)
+  scores    SeasonScore[]
+}
+
+model LevelThreshold {
+  level           Int    @id
+  requiredTotalXp Int    @unique
+  rankName        String @db.VarChar(128)
+}
+
+model Challenge {
+  id                 String              @id @default(uuid()) @db.Uuid
+  title              String              @db.VarChar(200)
+  description        String
+  category           String              @db.VarChar(64)
+  difficulty         ChallengeDifficulty
+  mode               ChallengeMode
+  xpReward           Int
+  seasonPointsReward Int                 @default(0)
+  // Empty means all Dota game modes are permitted.
+  allowedMatchModes  Int[]
+  publicationStatus  PublicationStatus   @default(DRAFT)
+  availableFrom      DateTime?           @db.Timestamptz(3)
+  createdAt          DateTime            @default(now()) @db.Timestamptz(3)
+  updatedAt          DateTime            @updatedAt @db.Timestamptz(3)
+  rules              ChallengeRule[]
+  users              UserChallenge[]
+
+  @@index([publicationStatus, availableFrom])
+}
+
+// Values are constrained to either a boolean win comparison or a numeric metric.
+model ChallengeRule {
+  id           String      @id @default(uuid()) @db.Uuid
+  challengeId  String      @db.Uuid
+  metric       RuleMetric
+  operator     RuleOperator
+  numberValue  Float?      @db.DoublePrecision
+  booleanValue Boolean?
+  challenge    Challenge   @relation(fields: [challengeId], references: [id], onDelete: Cascade)
+
+  @@index([challengeId])
+}
+
+model UserChallenge {
+  id                 String              @id @default(uuid()) @db.Uuid
+  userId             String              @db.Uuid
+  challengeId        String              @db.Uuid
+  activatedAt        DateTime            @default(now()) @db.Timestamptz(3)
+  status             UserChallengeStatus @default(ACTIVE)
+  attemptsChecked    Int                 @default(0)
+  completedByMatchId String?             @db.VarChar(20)
+  completedAt        DateTime?           @db.Timestamptz(3)
+  createdAt          DateTime            @default(now()) @db.Timestamptz(3)
+  updatedAt          DateTime            @updatedAt @db.Timestamptz(3)
+  user               User                @relation(fields: [userId], references: [id], onDelete: Restrict)
+  challenge          Challenge           @relation(fields: [challengeId], references: [id], onDelete: Restrict)
+  completedByMatch   Match?              @relation(fields: [completedByMatchId], references: [id], onDelete: Restrict)
+  evaluations        ChallengeEvaluation[]
+  reward             RewardLedger?
+
+  @@unique([userId, challengeId])
+  @@unique([id, userId])
+  @@index([userId, status, activatedAt])
+  @@index([challengeId])
+  @@index([completedByMatchId])
+}
+
+model Match {
+  id          String        @id @db.VarChar(20)
+  provider    MatchProvider @default(STRATZ)
+  startedAt   DateTime      @db.Timestamptz(3)
+  duration    Int
+  matchMode   Int
+  rawPayload  Json?         @db.JsonB
+  createdAt   DateTime      @default(now()) @db.Timestamptz(3)
+  updatedAt   DateTime      @updatedAt @db.Timestamptz(3)
+  players     PlayerMatchStats[]
+  completions UserChallenge[]
+  evaluations ChallengeEvaluation[]
+}
+
+model PlayerMatchStats {
+  matchId           String   @db.VarChar(20)
+  userId            String   @db.Uuid
+  win               Boolean
+  kills             Int
+  deaths            Int
+  assists           Int
+  killParticipation Float?   @db.DoublePrecision
+  lastHits          Int
+  heroDamage        Int
+  towerDamage       Int
+  wardsPlaced       Int
+  heroId            Int
+  createdAt         DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt         DateTime @updatedAt @db.Timestamptz(3)
+  match             Match    @relation(fields: [matchId], references: [id], onDelete: Restrict)
+  user              User     @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  @@id([matchId, userId])
+  @@index([userId, matchId])
+}
+
+model ChallengeEvaluation {
+  id              String           @id @default(uuid()) @db.Uuid
+  userChallengeId String           @db.Uuid
+  matchId         String           @db.VarChar(20)
+  status          EvaluationStatus @default(PENDING)
+  explanation     String?
+  details         Json?            @db.JsonB
+  createdAt       DateTime         @default(now()) @db.Timestamptz(3)
+  updatedAt       DateTime         @updatedAt @db.Timestamptz(3)
+  userChallenge   UserChallenge    @relation(fields: [userChallengeId], references: [id], onDelete: Restrict)
+  match           Match            @relation(fields: [matchId], references: [id], onDelete: Restrict)
+
+  @@unique([userChallengeId, matchId])
+  @@index([matchId])
+  @@index([status, createdAt])
+}
+
+model SeasonScore {
+  userId    String   @db.Uuid
+  seasonId  String   @db.Uuid
+  points    Int      @default(0)
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Restrict)
+  season    Season   @relation(fields: [seasonId], references: [id], onDelete: Restrict)
+  rewards   RewardLedger[]
+
+  @@id([userId, seasonId])
+  @@index([seasonId, points(sort: Desc), userId])
+}
+
+model RewardLedger {
+  // A completion receives at most one immutable logical grant, across seasons.
+  userChallengeId String        @id @db.Uuid
+  userId          String        @db.Uuid
+  seasonId        String?       @db.Uuid
+  xp              Int
+  seasonPoints    Int           @default(0)
+  createdAt       DateTime      @default(now()) @db.Timestamptz(3)
+  userChallenge   UserChallenge @relation(fields: [userChallengeId, userId], references: [id, userId], onDelete: Restrict)
+  seasonScore     SeasonScore?  @relation(fields: [userId, seasonId], references: [userId, seasonId], onDelete: Restrict)
+
+  @@unique([userChallengeId, userId])
+  @@index([userId, createdAt])
+  @@index([userId, seasonId])
+}
