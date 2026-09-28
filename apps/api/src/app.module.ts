@@ -6,13 +6,14 @@ import { HealthController } from './health.controller'
 import { DatabaseModule } from './database'
 import { ChallengesModule } from './challenges/challenges.module'
 import { AuthModule } from './auth/auth.module'
+import { StratzModule } from './integrations/stratz'
 
 @Module({
   imports: [ConfigModule.forRoot({
     isGlobal: true,
     envFilePath: resolve(__dirname, '../../../.env'),
     validate: validateEnvironment,
-  }), DatabaseModule, ChallengesModule, AuthModule],
+  }), DatabaseModule, ChallengesModule, AuthModule, StratzModule],
   controllers: [HealthController],
 })
 export class AppModule {}

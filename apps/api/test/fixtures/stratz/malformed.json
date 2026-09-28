@@ -1,0 +1,12 @@
+{
+  "data": {
+    "match": {
+      "id": 9000000104,
+      "startDateTime": null,
+      "durationSeconds": 1000,
+      "gameMode": 1,
+      "lobbyType": 0,
+      "players": []
+    }
+  }
+}

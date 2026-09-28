@@ -1,0 +1,16 @@
+{
+  "data": {
+    "match": {
+      "id": 9000000102,
+      "startDateTime": 1780002000,
+      "durationSeconds": 1200,
+      "gameMode": 23,
+      "lobbyType": 0,
+      "numHumanPlayers": 10,
+      "didRadiantWin": true,
+      "radiantKills": 31,
+      "direKills": 17,
+      "players": [{ "steamAccountId": 1001, "isRadiant": true, "heroId": 5, "kills": 2, "deaths": 1, "assists": 4, "stats": { "wards": [] } }]
+    }
+  }
+}

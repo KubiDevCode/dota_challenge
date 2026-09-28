@@ -60,7 +60,8 @@ BullMQ will use Redis as its queue storage; it is not a separate database. Redis
 are future concerns. Nginx will serve the SPA with route fallback and proxy /api. There is no deployment setup here.
 Reward writes must be transactional and idempotent. The rule engine must remain independent of NestJS, Prisma and providers.
 
-STRATZ must be hidden behind MatchProvider. The following is a future contract sketch, not a shared implementation:
+STRATZ is isolated in `apps/api/src/integrations/stratz`. The API owns the provider-neutral
+`MatchProvider` contract in `apps/api/src/integrations/match-provider.ts`:
 
 ```ts
 interface MatchProvider {
@@ -73,12 +74,27 @@ interface MatchProvider {
 }
 ```
 
-ProviderMatch will be defined when actual provider requirements are known. Match IDs remain strings.
-OpenDota is not implemented. No fallback adapter is introduced at this stage.
+`ProviderMatch` contains a string match ID, start time, optional duration, normalized mode
+(`RANKED`, `ALL_PICK`, `UNSUPPORTED`), and normalized per-player metrics. Absent STRATZ stats remain
+absent, so the rule engine can later return `PENDING`. Provider metadata and raw match payload
+are available through `source` for a future persistence layer. The adapter never writes to Prisma.
+It is registered through a Nest module but no match processing pipeline calls it yet.
+
+The player history query fetches the latest 50 matches without a cursor. With `afterMatchId`,
+it scans descending pages until that match ID is reached, the history ends, or ten pages have
+been read. A scan that reaches the ten-page limit throws instead of returning incomplete data.
+`getMatch` requests one complete match. Both calls use a token from `STRATZ_API_TOKEN` and a
+configurable timeout (`STRATZ_TIMEOUT_MS`, default 10000). Missing token affects only provider
+calls. Rate limit errors expose retryability and `Retry-After`; external error text is not logged.
+OpenDota is not implemented.
+
+Prisma's current `PlayerMatchStats` required columns cannot store missing metrics. A future
+persistence layer must wait for complete required stats or change that schema deliberately;
+this integration does not turn missing values into zero.
 
 ## Scope boundary
 
-Deferred: Steam OpenID, Redis sessions, STRATZ, OpenDota,
+Deferred: OpenDota,
 BullMQ, Challenge Rule Engine/API, XP, seasons, leaderboard, achievements, admin and production deployment.
 No external service is required to run this foundation.
 

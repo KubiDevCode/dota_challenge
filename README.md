@@ -7,7 +7,8 @@ API and worker currently provide infrastructure only.
 
 - Node.js 22.19+ and npm 10+ (validated with Node 22.19.0 / npm 11.6.3).
 - Run commands from the repository root.
-- PostgreSQL 16 is required for the API and migrations. Redis, Steam and STRATZ remain deferred.
+- PostgreSQL 16 is required for the API and migrations. STRATZ adapter calls require a token;
+  no match processing pipeline runs yet.
 
 ```sh
 npm ci
@@ -15,7 +16,7 @@ npm ci
 
 Copy `.env.example` to `.env` (`Copy-Item .env.example .env` in PowerShell,
 `cp .env.example .env` in a POSIX shell), then set `DATABASE_URL` to your PostgreSQL 16 database.
-The API validates the URL at startup. Leave integration credentials empty until those integrations are implemented.
+The API validates the URL at startup. Set `STRATZ_API_TOKEN` when calling the STRATZ adapter.
 Do not commit real secrets.
 
 Generate the Prisma Client and apply committed migrations with:
@@ -95,7 +96,7 @@ docs              Architecture and foundation verification notes
 
 Root .env is used by all apps, with process environment taking priority. Only variables prefixed with
 VITE_ are exposed to browser code; never use that prefix for database URLs, API keys or session secrets.
-APP_URL, REDIS_URL, STEAM_*, STRATZ_API_TOKEN and SESSION_SECRET are reserved for later work.
+STRATZ_API_TOKEN is used only by the API adapter, and STRATZ_TIMEOUT_MS sets its request timeout.
 
 See [AGENTS.md](AGENTS.md) for agent rules and [docs/architecture.md](docs/architecture.md) for current and target architecture.
 See [docs/foundation-report.md](docs/foundation-report.md) for the migration file list and verification results.

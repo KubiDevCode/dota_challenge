@@ -1,0 +1,28 @@
+{
+  "data": {
+    "match": {
+      "id": "9000000101",
+      "startDateTime": 1780001000,
+      "durationSeconds": 1900,
+      "gameMode": 1,
+      "lobbyType": 0,
+      "numHumanPlayers": 10,
+      "didRadiantWin": false,
+      "radiantKills": 12,
+      "direKills": 24,
+      "players": [{
+        "steamAccountId": 1001,
+        "isRadiant": false,
+        "isVictory": false,
+        "heroId": 42,
+        "kills": 4,
+        "deaths": 2,
+        "assists": 8,
+        "numLastHits": 90,
+        "heroDamage": 15000,
+        "towerDamage": 200,
+        "stats": { "wards": [] }
+      }]
+    }
+  }
+}
