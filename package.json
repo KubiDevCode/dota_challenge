@@ -7,6 +7,9 @@
     "node": ">=22.19.0",
     "npm": ">=10"
   },
+  "allowScripts": {
+    "esbuild@0.25.12": true
+  },
   "workspaces": [
     "packages/*",
     "apps/*"
