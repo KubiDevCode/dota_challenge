@@ -10,5 +10,11 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "npm run build && node --test test/*.test.cjs"
   },
-  "dependencies": { "@aegis-trials/shared": "0.0.1" }
+  "dependencies": {
+    "@aegis-trials/backend": "0.0.1",
+    "@aegis-trials/shared": "0.0.1",
+    "@prisma/adapter-pg": "7.10.0",
+    "bullmq": "^5.63.2",
+    "ioredis": "^5.8.2"
+  }
 }

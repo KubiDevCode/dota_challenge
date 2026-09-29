@@ -8,7 +8,8 @@ The repository uses npm workspaces with one root package-lock.json.
 | --- | --- | --- |
 | apps/web | Browser UI | React 18, TypeScript, Vite 6, Tailwind CSS 4; preserved prototype |
 | apps/api | HTTP boundary and persistence adapter | NestJS 11, validated configuration, shared Prisma service, health and Swagger |
-| apps/worker | Separate background process | Node.js / TypeScript entrypoint, environment loading, shutdown handlers; idle |
+| apps/worker | Separate background process | BullMQ match synchronization worker and periodic scan |
+| packages/backend | Shared server-only code | MatchProvider, STRATZ adapter, match processing pipeline, Prisma client |
 | packages/shared | Framework-independent cross-app contracts | Application name, API prefix, health response type |
 
 The browser prototype retains its existing routes, local challenge interactions, styles and mock data.
@@ -22,8 +23,7 @@ Web remains ESM with bundler module resolution; API/Worker use Node16 resolution
 The base TypeScript options live in tsconfig.base.json; server options in tsconfig.node.json.
 
 API is a modular monolith. Controllers are HTTP adapters, services implement use cases, persistence and
-providers are isolated. The worker is permitted to become a standalone
-NestJS application when background modules are introduced; it currently needs no DI container.
+providers are isolated. The worker is a standalone Node.js process using the shared backend pipeline.
 
 GET /api/health returns `{ "status": "ok", "service": "api" }`: process liveness only, not database readiness.
 Swagger UI lives at /api/docs, with the schema at /api/openapi.json.
@@ -56,12 +56,13 @@ Nginx
                                STRATZ
 ```
 
-BullMQ will use Redis as its queue storage; it is not a separate database. Redis sessions and queued jobs
-are future concerns. Nginx will serve the SPA with route fallback and proxy /api. There is no deployment setup here.
+BullMQ uses Redis as its queue storage; it is not a separate database. Redis also stores sessions,
+manual refresh cooldowns and short-lived failure status. Nginx will serve the SPA with route fallback
+and proxy /api. There is no deployment setup here.
 Reward writes must be transactional and idempotent. The rule engine must remain independent of NestJS, Prisma and providers.
 
-STRATZ is isolated in `apps/api/src/integrations/stratz`. The API owns the provider-neutral
-`MatchProvider` contract in `apps/api/src/integrations/match-provider.ts`:
+STRATZ is isolated in `packages/backend/src/integrations/stratz`. The provider-neutral
+`MatchProvider` contract lives in `packages/backend/src/integrations/match-provider.ts`:
 
 ```ts
 interface MatchProvider {
@@ -88,8 +89,8 @@ configurable timeout (`STRATZ_TIMEOUT_MS`, default 10000). Missing token affects
 calls. Rate limit errors expose retryability and `Retry-After`; external error text is not logged.
 OpenDota is not implemented.
 
-The match processing service in `apps/api/src/matches` can be called by a future worker or
-manual refresh service. `processPlayerMatches` fetches complete match details and processes
+The match processing service in `packages/backend/src/matches` is called by the worker.
+`processPlayerMatches` fetches complete match details and processes
 history oldest first. `processMatch` processes one specified match; callers handling historical
 matches should use the history method to establish chronological order. A single-match
 challenge claims the first eligible match it processes. If that evaluation is `PENDING`, later
@@ -109,11 +110,25 @@ key and the user row lock protect retries and concurrent processors. A match out
 still awards XP and records zero season points. Level is derived from total XP and the configured
 `LevelThreshold` rows rather than stored as mutable user state.
 
+## Match synchronization
+
+The API enqueues `player-match-sync` jobs in the `match-sync` BullMQ queue. The worker owns one
+BullMQ scheduler that runs `scan-active-challenges` every two minutes. Each scan reads distinct
+users with ACTIVE challenges in batches and enqueues one sync job per user. A stable job ID
+(`player-<userId>`) prevents duplicate queued or running work. Completed and exhausted failed
+jobs are removed so later scans can enqueue again.
+
+`POST /api/me/matches/refresh` uses a Redis `SET NX PX` key for a 60-second cooldown.
+`GET /api/me/match-sync-status` returns only the authenticated user's state and last success.
+The worker persists a cursor and last successful time in `MatchSyncState` only after the pipeline
+finishes. Retries replay the same range safely. Pending evaluations are revisited when STRATZ
+may have filled missing statistics. Provider timeouts, rate limits and network failures retry
+up to four attempts with exponential backoff; permanent errors stop immediately. The worker
+closes BullMQ, Redis and Prisma on shutdown.
+
 ## Scope boundary
 
-Deferred: OpenDota,
-BullMQ, leaderboard, achievements, admin and production deployment.
-No external service is required to run this foundation.
+Deferred: OpenDota, achievements and production deployment.
 
 Infrastructure follows the official NestJS documentation for
 [configuration](https://docs.nestjs.com/techniques/configuration),

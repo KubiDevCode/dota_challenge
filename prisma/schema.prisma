@@ -5,6 +5,13 @@ generator client {
   importFileExtension = ""
 }
 
+generator backend_client {
+  provider            = "prisma-client"
+  output              = "../packages/backend/src/generated"
+  moduleFormat        = "cjs"
+  importFileExtension = ""
+}
+
 datasource db {
   provider = "postgresql"
 }
@@ -78,6 +85,14 @@ model User {
   challenges  UserChallenge[]
   matchStats  PlayerMatchStats[]
   seasonScores SeasonScore[]
+  matchSync MatchSyncState?
+}
+
+model MatchSyncState {
+  userId String @id @db.Uuid
+  lastMatchId String? @db.VarChar(20)
+  lastSuccessfulAt DateTime? @db.Timestamptz(3)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model Season {
@@ -168,6 +183,8 @@ model Match {
   players     PlayerMatchStats[]
   completions UserChallenge[]
   evaluations ChallengeEvaluation[]
+
+  @@index([startedAt(sort: Desc), id(sort: Desc)])
 }
 
 model PlayerMatchStats {
@@ -220,7 +237,7 @@ model SeasonScore {
   rewards   RewardLedger[]
 
   @@id([userId, seasonId])
-  @@index([seasonId, points(sort: Desc), userId])
+  @@index([seasonId, points(sort: Desc), createdAt, userId])
 }
 
 model RewardLedger {

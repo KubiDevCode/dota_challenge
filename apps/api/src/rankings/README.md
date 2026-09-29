@@ -1,0 +1,12 @@
+# Rankings read API
+
+- `GET /api/seasons/current` returns `{ id, name, startsAt, endsAt }` for the one `ACTIVE` season. No active season returns 404. Multiple active rows return 500, rather than silently selecting one. The database partial unique index should prevent the latter under normal operation.
+- `GET /api/leaderboard?page=1&limit=20` returns `{ season, items, page, limit, hasMore }`. Only users with a `SeasonScore` row for the current season appear. Each item contains `userId`, `displayName`, `avatarUrl`, `totalXp`, `level`, `seasonalScore`, and one-based `position`. No active season returns 404.
+- `GET /api/users/:id/profile` is public and returns `{ id, displayName, avatarUrl, totalXp, level, seasonalScore, seasonId, completedChallenges }`. With no active season, `seasonId` is `null` and `seasonalScore` is `0`. Unknown user returns 404. Completed challenges is the count of `SUCCEEDED` enrollments; there is no achievement model in the MVP.
+- `GET /api/me/matches?page=1&limit=20` requires the session and returns `{ items, page, limit, hasMore }`. An item contains the saved match start, duration, mode, and only that user's normalized player stats. It does not return raw provider payloads or other players' stats. Missing authentication returns 401.
+
+`level` is the highest configured `LevelThreshold` with `requiredTotalXp <= totalXp`, including the exact threshold. It is `null` below the first threshold. All read endpoints use the existing `levelForXp` function.
+
+Leaderboard order is `SeasonScore.points DESC`, then the score row's immutable `createdAt ASC`, then `userId ASC`. Match history order is `Match.startedAt DESC`, then `matchId DESC`. Both use database pagination with `page` from 1 to 1000 and `limit` from 1 to 50; defaults are 1 and 20. `hasMore` comes from fetching one additional row. Changes to scores or matches between page requests can shift offset pages; the order within each request remains deterministic.
+
+The leaderboard query uses the season, points, created-at, user-ID index and selects user fields through a relation in the bounded query. Thresholds are loaded once per request, not for every row. Match history filters by authenticated user before joining saved match data; the user/match stats index and match start/id index support the filter and order. Profile's completion count is a database aggregate. No endpoint issues a separate query for each row.

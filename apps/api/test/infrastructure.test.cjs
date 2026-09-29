@@ -55,6 +55,10 @@ test('unknown endpoints use the JSON error envelope', async () => {
 test('unauthenticated and invalid sessions receive 401 from /api/me', async () => {
   assert.equal((await fetch(`${baseUrl}/api/me`)).status, 401)
   assert.equal((await fetch(`${baseUrl}/api/me`, { headers: { cookie: 'aegis.sid=invalid' } })).status, 401)
+  assert.equal((await fetch(`${baseUrl}/api/me/match-sync-status`)).status, 401)
+  assert.equal((await fetch(`${baseUrl}/api/me/matches/refresh`, {
+    method: 'POST', headers: { origin: 'http://localhost:5173' },
+  })).status, 401)
 })
 
 test('logout is repeatable and clears the session cookie', async () => {

@@ -1,0 +1,28 @@
+{
+  "name": "@aegis-trials/backend",
+  "version": "0.0.1",
+  "private": true,
+  "type": "commonjs",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": { "types": "./dist/index.d.ts", "require": "./dist/index.js" },
+    "./generated/client": { "types": "./dist/generated/client.d.ts", "require": "./dist/generated/client.js" },
+    "./generated/models": { "types": "./dist/generated/models.d.ts", "require": "./dist/generated/models.js" },
+    "./generated/enums": { "types": "./dist/generated/enums.d.ts", "require": "./dist/generated/enums.js" },
+    "./integrations/match-provider": { "types": "./dist/integrations/match-provider.d.ts", "require": "./dist/integrations/match-provider.js" },
+    "./integrations/stratz/stratz.provider": { "types": "./dist/integrations/stratz/stratz.provider.d.ts", "require": "./dist/integrations/stratz/stratz.provider.js" },
+    "./integrations/stratz/stratz.normalize": { "types": "./dist/integrations/stratz/stratz.normalize.d.ts", "require": "./dist/integrations/stratz/stratz.normalize.js" },
+    "./matches/match-processing.service": { "types": "./dist/matches/match-processing.service.d.ts", "require": "./dist/matches/match-processing.service.js" }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@aegis-trials/shared": "0.0.1",
+    "@nestjs/common": "^11.2.6",
+    "@prisma/adapter-pg": "7.10.0",
+    "@prisma/client": "7.10.0"
+  }
+}

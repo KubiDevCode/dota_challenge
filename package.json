@@ -12,16 +12,17 @@
     "apps/*"
   ],
   "scripts": {
-    "dev": "npm run build:shared && concurrently --kill-others --names shared,web,api,worker \"npm run dev -w @aegis-trials/shared\" \"npm run dev -w @aegis-trials/web\" \"npm run dev -w @aegis-trials/api\" \"npm run dev -w @aegis-trials/worker\"",
+    "dev": "npm run build:shared && npm run build:backend && concurrently --kill-others --names shared,web,api,worker \"npm run dev -w @aegis-trials/shared\" \"npm run dev -w @aegis-trials/web\" \"npm run dev -w @aegis-trials/api\" \"npm run dev -w @aegis-trials/worker\"",
     "dev:web": "npm run build:shared && npm run dev -w @aegis-trials/web",
-    "dev:api": "npm run build:shared && npm run dev -w @aegis-trials/api",
-    "dev:worker": "npm run build:shared && npm run dev -w @aegis-trials/worker",
+    "dev:api": "npm run build:shared && npm run build:backend && npm run dev -w @aegis-trials/api",
+    "dev:worker": "npm run build:shared && npm run build:backend && npm run dev -w @aegis-trials/worker",
     "build:shared": "npm run build -w @aegis-trials/shared",
+    "build:backend": "npm run db:generate && npm run build -w @aegis-trials/backend",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate deploy",
-    "build": "npm run build:shared && npm run build -w @aegis-trials/web -w @aegis-trials/api -w @aegis-trials/worker",
-    "test": "npm run build:shared && npm run test --workspaces --if-present",
-    "typecheck": "npm run build:shared && npm run typecheck --workspaces",
+    "build": "npm run build:shared && npm run build:backend && npm run build -w @aegis-trials/web -w @aegis-trials/api -w @aegis-trials/worker",
+    "test": "npm run build:shared && npm run build:backend && npm run test --workspaces --if-present",
+    "typecheck": "npm run build:shared && npm run build:backend && npm run typecheck --workspaces",
     "lint": "eslint . --max-warnings 0",
     "preview": "npm run preview -w @aegis-trials/web"
   },

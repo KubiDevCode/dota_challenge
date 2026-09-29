@@ -8,13 +8,15 @@ import { ChallengesModule } from './challenges/challenges.module'
 import { AuthModule } from './auth/auth.module'
 import { StratzModule } from './integrations/stratz'
 import { MatchesModule } from './matches/matches.module'
+import { RankingsModule } from './rankings/rankings.module'
+import { AdminModule } from './admin/admin.module'
 
 @Module({
   imports: [ConfigModule.forRoot({
     isGlobal: true,
     envFilePath: resolve(__dirname, '../../../.env'),
     validate: validateEnvironment,
-  }), DatabaseModule, ChallengesModule, AuthModule, StratzModule, MatchesModule],
+  }), DatabaseModule, ChallengesModule, AuthModule, AdminModule, StratzModule, MatchesModule, RankingsModule],
   controllers: [HealthController],
 })
 export class AppModule {}
