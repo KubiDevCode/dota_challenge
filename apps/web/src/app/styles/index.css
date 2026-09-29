@@ -80,6 +80,9 @@ button { cursor: pointer; }
 .difficulty-легко { color: #6ec99d; background: rgba(53,150,102,.1); }
 .difficulty-средне { color: #d8aa60; background: rgba(176,121,39,.1); }
 .difficulty-сложно { color: #e16d59; background: rgba(186,61,42,.11); }
+.difficulty-easy { color: #6ec99d; background: rgba(53,150,102,.1); }
+.difficulty-medium { color: #d8aa60; background: rgba(176,121,39,.1); }
+.difficulty-hard { color: #e16d59; background: rgba(186,61,42,.11); }
 .card-arrow { color: #66635e; transition: color .2s, transform .2s; }
 .challenge-card:hover .card-arrow { color: #d85b47; transform: translateX(2px); }
 .active-state { display: inline-flex; align-items: center; gap: 4px; border-radius: 4px; padding: 4px 7px; background: rgba(56,149,104,.1); color: #6dc799; font-size: 10px; font-weight: 700; }
@@ -105,6 +108,7 @@ button { cursor: pointer; }
 .podium-rank { position: absolute; left: 16px; top: 16px; display: flex; align-items: center; gap: 5px; color: #bd8c48; font-family: Oswald, sans-serif; }
 .search-box { display: flex; min-height: 38px; align-items: center; gap: 8px; border: 1px solid rgba(255,255,255,.08); border-radius: 7px; padding: 0 13px; color: #6f6c66; font-size: 11px; background: rgba(255,255,255,.02); }
 .leaderboard-row { display: grid; grid-template-columns: 45px minmax(160px, 1fr) 110px 90px 100px; align-items: center; gap: 12px; border-bottom: 1px solid rgba(255,255,255,.06); padding: 15px 20px; }
+.leaderboard-data-row { grid-template-columns: 64px minmax(0, 1fr) 130px; }
 .leaderboard-head { padding-top: 12px; padding-bottom: 12px; color: #686560; font-size: 9px; font-weight: 700; letter-spacing: .14em; }
 .my-rank-separator { height: 26px; display: grid; place-items: center; border-bottom: 1px solid rgba(255,255,255,.06); color: #4f4d49; letter-spacing: .4em; }
 .my-rank { border-left: 2px solid #cc4b37; background: rgba(183,52,37,.06); }
@@ -126,6 +130,7 @@ button { cursor: pointer; }
 @media (min-width: 768px) { .podium-grid { grid-template-columns: repeat(3, 1fr); } }
 @media (max-width: 639px) {
   .leaderboard-row { grid-template-columns: 34px minmax(135px, 1fr) 70px; padding: 13px 12px; gap: 7px; }
+  .leaderboard-data-row { grid-template-columns: 38px minmax(0, 1fr) 78px; }
   .profile-avatar { width: 70px; height: 70px; }
   .activity-chart { height: 120px; gap: 4px; }
 }

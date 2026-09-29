@@ -45,28 +45,31 @@ Relative imports keep the existing Vite/TypeScript setup simple.
 - `app`: application Error Boundary, one stable QueryClient per app mount, router, layout, styles.
 - `pages`: compose home, challenges, leaderboard, profile and admin screens.
 - `widgets`: header, challenge grid, active challenges, leaderboard table, profile summary/progress and history.
-- `features`: URL difficulty filter, activation dialog and cancel action.
-- `entities`: challenge fixtures/model/card, user leaderboard fixtures, demo match history and achievement UI.
+- `features`: URL challenge filters, activation and cancellation, manual match refresh.
+- `entities`: challenge API/model/card, user profile API, private match history API and achievement UI.
 - `shared`: configurable HTTP client, public browser configuration, reusable loading/error UI.
 
 No empty slices or speculative server models are introduced. The prototype CSS is moved unchanged.
-`/profile` remains available; `/profile/:id` only shows the known demo profile for its demo ID.
-Unknown profiles explain that profile lookup is not connected. `/admin` explains that administration is unavailable;
+`/profile` uses `/me` for identity, then the public profile API for rank and seasonal score; it also loads
+private match history and challenge completions. `/profile/:id` uses only `/users/:id/profile`.
+`/admin` explains that administration is unavailable;
 it neither pretends to authenticate users nor implements backend administration.
 
 ## State and integration
 
-Difficulty lives in `?difficulty=easy|medium|hard`; missing/invalid values show all challenges.
-Other search parameters are preserved. Back/forward and direct URLs work.
-The mobile menu and selected dialog stay local. Demo active challenges are local to the challenges page,
-including the original reset on route departure. They are not server state or persisted rewards.
+Challenge difficulty, mode, category and page live in URL search parameters. Missing/invalid values
+use the default listing. Other search parameters are preserved. Back/forward and direct URLs work.
+The mobile menu and selected challenge dialog stay local. The challenge catalog and enrollments
+come from the backend through TanStack Query. Activation and cancellation invalidate affected caches.
 No global client UI state exists, so Zustand is deliberately not installed and no store is created.
 Introduce it only when genuine cross-screen client UI state appears; never store server data in it.
 
-TanStack Query owns future server data. Put endpoint adapters and query hooks in the owning entity/feature,
+TanStack Query owns server data. Put endpoint adapters and query hooks in the owning entity/feature,
 call `shared/api`, forward the query signal, and use `LoadingState` / `ErrorState` at the consuming widget.
-Do not add HTTP calls to pages. Static fixtures are not wrapped in fake asynchronous API calls.
-The UI does not call backend endpoints until matching frontend contracts are implemented.
+Do not add HTTP calls to pages. Challenges use `GET /challenges`, `GET /me/challenges`,
+`POST /challenges/:id/activate` and `DELETE /me/challenges/:userChallengeId`.
+The match page uses `GET /me/matches?page=&limit=`, `POST /me/matches/refresh` and
+`GET /me/match-sync-status`; active sync states poll at a ten-second interval.
 
 `VITE_API_BASE_URL` is a public base URL (default `/api`), read from the root environment by Vite.
 It must never contain secrets. API paths passed to the client are relative to that base.
@@ -87,8 +90,8 @@ Run from the repository root: `npm run test`, `npm run typecheck`, `npm run lint
 Frontend only: `npm run test -w @aegis-trials/web` (Vitest + React Testing Library).
 The architecture test checks import direction, public entrypoints, same-layer isolation and page HTTP calls.
 
-Existing XP, dates, countdowns, rankings, achievements and Steam labels are prototype content.
-Authentication, match sync, rewards, leaderboard/admin APIs and action buttons that were already inert remain unimplemented.
+The home progress card, header identity, achievements and some Steam labels are prototype content.
+Other prototype screens may still contain static content.
 Production hosting must fall back to `index.html` for SPA routes and proxy `/api` (or configure the public API base URL).
 Google Fonts remains the existing external font dependency.
 The root `docs/architecture.md` describes the earlier foundation; this file documents the completed frontend migration.
