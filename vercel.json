@@ -3,6 +3,10 @@
     {
       "source": "/api/:path*",
       "destination": "https://api.kubikoba.ru/api/:path*"
+    },
+    {
+      "source": "/:path*",
+      "destination": "/index.html"
     }
   ]
 }
