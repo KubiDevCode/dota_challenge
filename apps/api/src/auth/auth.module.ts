@@ -16,6 +16,7 @@ import { SteamOpenIdService } from './steam-openid.provider'
 class AuthSessionMiddleware implements NestMiddleware {
   private readonly logger = new Logger(AuthSessionMiddleware.name)
   private readonly redis: RedisClientType | undefined
+  private connectPromise: Promise<void> | undefined
   readonly handler: ReturnType<typeof session>
 
   constructor(config: ConfigService) {
@@ -45,12 +46,23 @@ class AuthSessionMiddleware implements NestMiddleware {
     })
   }
 
-  use(request: Request, response: Response, next: NextFunction): void {
-    this.handler(request, response, next)
+  async use(request: Request, response: Response, next: NextFunction): Promise<void> {
+    try {
+      await this.connect()
+      this.handler(request, response, next)
+    } catch (error) {
+      next(error)
+    }
   }
 
   async connect(): Promise<void> {
-    if (this.redis && !this.redis.isOpen) await this.redis.connect()
+    if (!this.redis || this.redis.isOpen) return
+    if (!this.connectPromise) {
+      this.connectPromise = this.redis.connect()
+        .then(() => undefined)
+        .finally(() => { this.connectPromise = undefined })
+    }
+    await this.connectPromise
   }
 
   async close(): Promise<void> {
