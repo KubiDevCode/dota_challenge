@@ -23,18 +23,20 @@
     "zod": "^4.6.5"
   },
   "devDependencies": {
-    "@esbuild/linux-x64": "0.25.12",
-    "@rollup/rollup-linux-x64-gnu": "4.63.5",
     "@tailwindcss/vite": "^4.0.0",
     "@testing-library/react": "^16.3.3",
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",
     "@vitejs/plugin-react": "^4.3.4",
     "jsdom": "^26.1.0",
-    "lightningcss-linux-x64-gnu": "1.32.0",
     "tailwindcss": "^4.0.0",
     "typescript": "~5.7.2",
     "vite": "^6.0.5",
     "vitest": "^3.2.7"
+  },
+  "optionalDependencies": {
+    "@esbuild/linux-x64": "0.25.12",
+    "@rollup/rollup-linux-x64-gnu": "4.63.5",
+    "lightningcss-linux-x64-gnu": "1.32.0"
   }
 }
