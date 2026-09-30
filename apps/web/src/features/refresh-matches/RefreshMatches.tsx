@@ -20,7 +20,7 @@ export function RefreshMatches() {
     queryKey: ['match-sync-status'],
     queryFn: async ({ signal }) => statusSchema.parse(await apiRequest('/me/match-sync-status', { signal })),
     retry: false,
-    refetchInterval: (query) => monitorUntil > Date.now() || query.state.data?.status === 'queued' || query.state.data?.status === 'processing' ? 10_000 : false,
+    refetchInterval: 10_000,
   })
   const refresh = useMutation({
     mutationFn: async () => refreshSchema.parse(await apiRequest('/me/matches/refresh', { method: 'POST' })),
