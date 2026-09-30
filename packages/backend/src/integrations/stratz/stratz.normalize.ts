@@ -57,6 +57,16 @@ function normalizeLobbyTypeId(value: unknown): number | undefined {
   return optionalNumber(value, 'invalid lobby type')
 }
 
+function teamKillCount(value: unknown): number | undefined {
+  if (!Array.isArray(value)) return optionalNumber(value, 'invalid team kill count')
+  return value.reduce((total, entry) => {
+    const kills = optionalNumber(entry, 'invalid team kill count')
+    const next = total + (kills ?? 0)
+    if (!Number.isSafeInteger(next)) throw new StratzMalformedResponseError('invalid team kill count')
+    return next
+  }, 0)
+}
+
 function optionalBoolean(value: unknown, detail: string): boolean | undefined {
   if (value === null || value === undefined) return undefined
   if (typeof value !== 'boolean') throw new StratzMalformedResponseError(detail)
@@ -88,8 +98,8 @@ function normalizePlayer(raw: unknown, match: JsonRecord, durationSeconds: numbe
   const didRadiantWin = optionalBoolean(match.didRadiantWin, 'invalid match victory flag')
   const win = isVictory ?? (isRadiant !== undefined && didRadiantWin !== undefined
     ? isRadiant === didRadiantWin : undefined)
-  const teamKills = isRadiant === undefined ? undefined : optionalNumber(
-    isRadiant ? match.radiantKills : match.direKills, 'invalid team kill count',
+  const teamKills = isRadiant === undefined ? undefined : teamKillCount(
+    isRadiant ? match.radiantKills : match.direKills,
   )
   const kills = optionalNumber(player.kills, 'invalid kills')
   const deaths = optionalNumber(player.deaths, 'invalid deaths')

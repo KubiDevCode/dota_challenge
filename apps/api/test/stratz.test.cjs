@@ -82,6 +82,16 @@ test('current STRATZ enum values normalize to their Dota mode and lobby IDs', ()
   assert.equal(match.source.lobbyTypeId, 7)
 })
 
+test('current STRATZ team-kill timelines are summed for participation', () => {
+  const match = normalizeStratzMatch({
+    id: '9000000106', startDateTime: 1780000000, gameMode: 'ALL_PICK_RANKED',
+    lobbyType: 'RANKED', numHumanPlayers: 10, radiantKills: [1, 2, 3], direKills: [1],
+    players: [{ steamAccountId: 1001, isRadiant: true, kills: 3, assists: 2 }],
+  })
+  assert.equal(match.players[0].teamKills, 6)
+  assert.equal(match.players[0].killParticipation, 5 / 6)
+})
+
 test('missing stats remain missing while explicit zero stays zero', async () => {
   const { provider } = mockProvider(fixture('missing-stats'))
   const match = await provider.getMatch('9000000103')
