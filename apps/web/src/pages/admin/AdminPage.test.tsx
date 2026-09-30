@@ -84,6 +84,36 @@ it('validates incompatible rules before sending them to the API', async () => {
   expect(fetchMock.mock.calls.some(([url, options]) => url === '/api/admin/challenges' && options?.method === 'POST')).toBe(false)
 })
 
+it('clears the kill-participation error after correcting the value to zero', async () => {
+  const created = challenge({ rules: [{ metric: 'killParticipation', operator: 'GTE', value: 0 }] })
+  const fetchMock = successFetch()
+  fetchMock.mockImplementation((url: string, options?: RequestInit) => {
+    if (url.endsWith('/me')) return Promise.resolve(json(user()))
+    if (url.endsWith('/admin/challenges') && options?.method === 'POST') return Promise.resolve(json(created, 201))
+    if (url.endsWith('/admin/challenges')) return Promise.resolve(json([]))
+    if (url.endsWith('/admin/seasons')) return Promise.resolve(json([]))
+    if (url.endsWith('/admin/level-thresholds')) return Promise.resolve(json([]))
+    return Promise.resolve(json({}))
+  })
+  openAdmin(fetchMock)
+  fireEvent.click(await screen.findByRole('button', { name: 'Создать испытание' }))
+  fireEvent.change(screen.getByLabelText('Название'), { target: { value: 'Win a match' } })
+  fireEvent.change(screen.getByLabelText('Категория'), { target: { value: 'combat' } })
+  fireEvent.change(screen.getByLabelText('Метрика правила 1'), { target: { value: 'killParticipation' } })
+  fireEvent.change(screen.getByLabelText('Значение правила 1'), { target: { value: '2' } })
+  fireEvent.click(screen.getByRole('button', { name: 'Сохранить испытание' }))
+  expect(await screen.findByText('Укажите долю от 0 до 1')).toBeTruthy()
+
+  fireEvent.change(screen.getByLabelText('Метрика правила 1'), { target: { value: 'heroDamage' } })
+  await waitFor(() => expect(screen.queryByText('Укажите долю от 0 до 1')).toBeNull())
+  fireEvent.change(screen.getByLabelText('Метрика правила 1'), { target: { value: 'killParticipation' } })
+  expect((screen.getByLabelText('Значение правила 1') as HTMLInputElement).value).toBe('0')
+  fireEvent.click(screen.getByRole('button', { name: 'Сохранить испытание' }))
+  await waitFor(() => expect(fetchMock.mock.calls.some(([url, options]) => url === '/api/admin/challenges' && options?.method === 'POST')).toBe(true))
+  const sent = JSON.parse(fetchMock.mock.calls.find(([url, options]) => url === '/api/admin/challenges' && options?.method === 'POST')![1].body)
+  expect(sent.rules).toEqual([{ metric: 'killParticipation', operator: 'GTE', value: 0 }])
+})
+
 it('shows backend validation errors on challenge save', async () => {
   const fetchMock = successFetch()
   fetchMock.mockImplementation((url: string, options?: RequestInit) => url.endsWith('/admin/challenges') && options?.method === 'POST'

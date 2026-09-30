@@ -41,8 +41,8 @@ function RuleEditor({ control, register, setValue, formState: { errors } }: UseF
       return <div key={row.id} className="grid gap-2 sm:grid-cols-[1.2fr_.8fr_1fr_auto] sm:items-end">
         <label className={fieldLabel}>Метрика<select className={inputClass} aria-label={`Метрика правила ${index + 1}`} {...register(`rules.${index}.metric`, { onChange: (event) => {
           const next = event.target.value
-          setValue(`rules.${index}.operator`, next === 'win' || next === 'heroId' ? 'EQ' : 'GTE')
-          setValue(`rules.${index}.value`, next === 'win' ? true : next === 'heroId' ? 1 : 0)
+          setValue(`rules.${index}.operator`, next === 'win' || next === 'heroId' ? 'EQ' : 'GTE', { shouldValidate: true })
+          setValue(`rules.${index}.value`, next === 'win' ? true : next === 'heroId' ? 1 : 0, { shouldValidate: true })
         } })}>{challengeMetrics.map((item) => <option key={item} value={item}>{metricLabel[item]}</option>)}</select></label>
         <label className={fieldLabel}>Оператор<select className={inputClass} aria-label={`Оператор правила ${index + 1}`} {...register(`rules.${index}.operator`)}><option value="EQ">Равно</option>{!isWin && !isHero && <><option value="GTE">Не меньше</option><option value="LTE">Не больше</option></>}</select></label>
         <label className={fieldLabel}>Значение{isWin ? <select className={inputClass} aria-label={`Значение правила ${index + 1}`} {...register(`rules.${index}.value`, { setValueAs: (value) => value === 'true' })}><option value="true">Да</option><option value="false">Нет</option></select> : <input className={inputClass} aria-label={`Значение правила ${index + 1}`} type="number" min={metric === 'heroId' ? 1 : 0} step={['kills', 'deaths', 'assists', 'lastHits', 'wardsPlaced', 'heroId'].includes(metric) ? 1 : 'any'} {...register(`rules.${index}.value`, { valueAsNumber: true })} />}</label>
