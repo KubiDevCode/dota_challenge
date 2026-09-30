@@ -3,7 +3,7 @@ const { readFileSync } = require('node:fs')
 const { join } = require('node:path')
 const { test } = require('node:test')
 const { StratzMatchProvider, StratzProviderError } = require('../dist/integrations/stratz/stratz.provider')
-const { StratzMalformedResponseError, normalizeGameMode } = require('../dist/integrations/stratz/stratz.normalize')
+const { StratzMalformedResponseError, normalizeGameMode, normalizeStratzMatch } = require('../dist/integrations/stratz/stratz.normalize')
 
 function fixture(name) {
   return JSON.parse(readFileSync(join(__dirname, 'fixtures', 'stratz', `${name}.json`), 'utf8'))
@@ -69,6 +69,17 @@ test('All Pick is allowed; Turbo, bots, lobby and unknown modes are unsupported'
   assert.equal(normalizeGameMode(1, 0, undefined), 'UNSUPPORTED')
   assert.equal(normalizeGameMode(undefined, 7, 10), 'UNSUPPORTED')
   assert.equal(normalizeGameMode(1, 7, 10), 'RANKED')
+})
+
+test('current STRATZ enum values normalize to their Dota mode and lobby IDs', () => {
+  const match = normalizeStratzMatch({
+    id: '9000000105', startDateTime: 1780000000, durationSeconds: 1800,
+    gameMode: 'ALL_PICK_RANKED', lobbyType: 'RANKED', numHumanPlayers: 10,
+    players: [{ steamAccountId: 1001 }],
+  })
+  assert.equal(match.gameMode, 'RANKED')
+  assert.equal(match.source.gameModeId, 22)
+  assert.equal(match.source.lobbyTypeId, 7)
 })
 
 test('missing stats remain missing while explicit zero stays zero', async () => {

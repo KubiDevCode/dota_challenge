@@ -39,6 +39,24 @@ function optionalNumber(value: unknown, detail: string): number | undefined {
   return value
 }
 
+function normalizeGameModeId(value: unknown): number | undefined {
+  if (typeof value === 'string') {
+    if (value === 'ALL_PICK') return 1
+    if (value === 'ALL_PICK_RANKED') return 22
+    return undefined
+  }
+  return optionalNumber(value, 'invalid game mode')
+}
+
+function normalizeLobbyTypeId(value: unknown): number | undefined {
+  if (typeof value === 'string') {
+    if (value === 'UNRANKED') return 0
+    if (value === 'RANKED') return 7
+    return undefined
+  }
+  return optionalNumber(value, 'invalid lobby type')
+}
+
 function optionalBoolean(value: unknown, detail: string): boolean | undefined {
   if (value === null || value === undefined) return undefined
   if (typeof value !== 'boolean') throw new StratzMalformedResponseError(detail)
@@ -127,8 +145,8 @@ export function normalizeStratzMatch(raw: unknown): ProviderMatch {
   const startedAt = new Date(startedAtSeconds * 1000)
   if (Number.isNaN(startedAt.getTime())) throw new StratzMalformedResponseError('invalid start time')
   const durationSeconds = optionalNumber(match.durationSeconds, 'invalid duration')
-  const gameModeId = optionalNumber(match.gameMode, 'invalid game mode')
-  const lobbyTypeId = optionalNumber(match.lobbyType, 'invalid lobby type')
+  const gameModeId = normalizeGameModeId(match.gameMode)
+  const lobbyTypeId = normalizeLobbyTypeId(match.lobbyType)
   const numHumanPlayers = optionalNumber(match.numHumanPlayers, 'invalid human player count')
   if (!Array.isArray(match.players)) throw new StratzMalformedResponseError('missing players')
   const players = match.players.map((player) => normalizePlayer(player, match, durationSeconds))
