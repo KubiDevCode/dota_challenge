@@ -133,6 +133,7 @@ export class StratzMatchProvider implements MatchProvider {
             authorization: `Bearer ${token}`,
             'content-type': 'application/json',
             accept: 'application/json',
+            'user-agent': 'STRATZ_API',
           },
           body: JSON.stringify({ query, variables }),
           signal: controller.signal,

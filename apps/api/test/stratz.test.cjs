@@ -50,6 +50,7 @@ test('ranked fixture normalizes stats, win/loss, duration, hero and kill partici
   assert.equal(match.players[1].killParticipation, 6 / 18)
   assert.equal(requests[0].url, 'https://api.stratz.com/graphql')
   assert.equal(requests[0].options.headers.authorization, 'Bearer test-token')
+  assert.equal(requests[0].options.headers['user-agent'], 'STRATZ_API')
   assert.equal(requests[0].body.variables.matchId, 9000000100)
   assert.match(requests[0].body.query, /match\(id: \$matchId\)/)
 })
