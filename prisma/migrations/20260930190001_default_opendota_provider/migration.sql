@@ -1,0 +1,2 @@
+ALTER TABLE "Match"
+  ALTER COLUMN "provider" SET DEFAULT 'OPENDOTA';

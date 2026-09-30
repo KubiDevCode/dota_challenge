@@ -106,8 +106,8 @@ test('environment supplies defaults and validates the database URL, port, host a
   }
   assert.equal(validateEnvironment(databaseEnv).API_PORT, 3000)
   assert.equal(validateEnvironment({ ...databaseEnv, API_PORT: '3100' }).API_PORT, 3100)
-  assert.equal(validateEnvironment(databaseEnv).STRATZ_TIMEOUT_MS, 10000)
-  assert.equal(validateEnvironment({ ...databaseEnv, STRATZ_TIMEOUT_MS: '2500' }).STRATZ_TIMEOUT_MS, 2500)
+  assert.equal(validateEnvironment(databaseEnv).OPENDOTA_TIMEOUT_MS, 10000)
+  assert.equal(validateEnvironment({ ...databaseEnv, OPENDOTA_TIMEOUT_MS: '2500' }).OPENDOTA_TIMEOUT_MS, 2500)
   for (const DATABASE_URL of ['', 'mysql://localhost/db', 'postgresql:///db']) {
     assert.throws(() => validateEnvironment({ ...databaseEnv, DATABASE_URL }), /DATABASE_URL/)
   }
@@ -115,7 +115,7 @@ test('environment supplies defaults and validates the database URL, port, host a
     assert.throws(() => validateEnvironment({ ...databaseEnv, API_PORT }), /API_PORT/)
   }
   assert.throws(() => validateEnvironment({ ...databaseEnv, API_HOST: '' }), /API_HOST/)
-  assert.throws(() => validateEnvironment({ ...databaseEnv, STRATZ_TIMEOUT_MS: '0' }), /STRATZ_TIMEOUT_MS/)
+  assert.throws(() => validateEnvironment({ ...databaseEnv, OPENDOTA_TIMEOUT_MS: '0' }), /OPENDOTA_TIMEOUT_MS/)
   assert.throws(() => validateEnvironment({ ...databaseEnv, NODE_ENV: 'invalid' }), /NODE_ENV/)
   assert.throws(() => validateEnvironment({ ...databaseEnv, SESSION_SECRET: 'short' }), /SESSION_SECRET/)
   assert.throws(() => validateEnvironment({ ...databaseEnv, NODE_ENV: 'production' }), /APP_URL, STEAM_REALM and STEAM_RETURN_URL/)

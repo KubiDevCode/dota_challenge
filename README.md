@@ -1,14 +1,14 @@
 # Aegis Trials
 
-MVP monorepo foundation. The existing Dota 2 frontend prototype is preserved in apps/web;
-API and worker currently provide infrastructure only.
+MVP monorepo for Dota 2 challenges. The API handles accounts, challenges, match history and
+sync status; the background worker imports OpenDota matches and evaluates active challenges.
 
 ## Requirements and local setup
 
 - Node.js 22.19+ and npm 10+ (validated with Node 22.19.0 / npm 11.6.3).
 - Run commands from the repository root.
-- PostgreSQL 16 is required for the API and migrations. STRATZ adapter calls require a token;
-  no match processing pipeline runs yet.
+- PostgreSQL 16 is required for the API and migrations. Match synchronization uses the OpenDota API;
+  an API key is optional and increases its rate limits.
 
 ```sh
 npm ci
@@ -16,7 +16,7 @@ npm ci
 
 Copy `.env.example` to `.env` (`Copy-Item .env.example .env` in PowerShell,
 `cp .env.example .env` in a POSIX shell), then set `DATABASE_URL` to your PostgreSQL 16 database.
-The API validates the URL at startup. Set `STRATZ_API_TOKEN` when calling the STRATZ adapter.
+The API validates the URL at startup. Set `OPENDOTA_API_KEY` to use an optional OpenDota API key.
 Do not commit real secrets.
 
 Generate the Prisma Client and apply committed migrations with:
@@ -37,7 +37,7 @@ npm run dev
 
 This builds shared and starts its compiler watcher plus web, API and worker. Ctrl+C stops the group.
 The API and worker use Node's watch mode with ts-node; no Nest CLI installation is needed.
-The worker logs startup and stays idle using a keep-alive timer until stopped; it does not process jobs.
+The worker polls match-sync jobs and periodically queues users with active challenges.
 
 | Service | Address |
 | --- | --- |
@@ -96,8 +96,8 @@ docs              Architecture and foundation verification notes
 
 Root .env is used by all apps, with process environment taking priority. Only variables prefixed with
 VITE_ are exposed to browser code; never use that prefix for database URLs, API keys or session secrets.
-STRATZ_API_TOKEN is used only by the API adapter, and STRATZ_TIMEOUT_MS sets its request timeout.
+OPENDOTA_API_KEY is used only by the server-side match adapter, and OPENDOTA_TIMEOUT_MS sets its request timeout.
 
 See [AGENTS.md](AGENTS.md) for agent rules and [docs/architecture.md](docs/architecture.md) for current and target architecture.
 See [docs/foundation-report.md](docs/foundation-report.md) for the migration file list and verification results.
-Frontend FSD migration and all business modules are separate tasks.
+The frontend remains the preserved React prototype and is being migrated incrementally.

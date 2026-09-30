@@ -25,9 +25,14 @@ export interface ProviderMatch {
   }>
 }
 
+export interface ProviderMatchSummary {
+  readonly id: string
+  readonly startedAt: Date
+}
+
 export interface MatchProvider {
   /** Newest match ID first. With a cursor, returns only IDs greater than it. */
-  getPlayerMatches(accountId: number, afterMatchId?: string): Promise<ProviderMatch[]>
+  getPlayerMatches(accountId: number, afterMatchId?: string): Promise<ProviderMatchSummary[]>
   getMatch(matchId: string): Promise<ProviderMatch>
 }
 

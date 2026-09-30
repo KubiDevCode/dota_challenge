@@ -11,7 +11,12 @@ const challenges = ids.map((id, index) => ({
   difficulty: index === 0 ? 'EASY' : 'HARD', mode: index === 0 ? 'PERSISTENT' : 'SINGLE_MATCH',
   xpReward: 100, seasonPointsReward: 10, allowedMatchModes: [], rules: [],
 }))
-const enrollment = (index: number, status = 'ACTIVE') => ({
+type TestEnrollment = {
+  id: string; challenge: typeof challenges[number]; status: string; activatedAt: string; attemptsChecked: number
+  completedAt: string | null; completedByMatchId: string | null
+  completedByMatch: { id: string; startedAt: string; duration: number | null; matchMode: number | null } | null
+}
+const enrollment = (index: number, status = 'ACTIVE'): TestEnrollment => ({
   id: `10000000-0000-4000-8000-00000000000${index + 1}`, challenge: challenges[index], status,
   activatedAt: '2026-01-01T00:00:00.000Z', attemptsChecked: 0,
   completedAt: null, completedByMatchId: null, completedByMatch: null,
@@ -19,7 +24,7 @@ const enrollment = (index: number, status = 'ACTIVE') => ({
 const json = (data: unknown, status = 200) => new Response(JSON.stringify(data), { status, headers: { 'Content-Type': 'application/json' } })
 
 function setup({ initial = [], items = challenges, activateStatus = 201, cancelStatus = 200, listStatus = 200 }: {
-  initial?: ReturnType<typeof enrollment>[]; items?: typeof challenges; activateStatus?: number; cancelStatus?: number; listStatus?: number
+  initial?: TestEnrollment[]; items?: typeof challenges; activateStatus?: number; cancelStatus?: number; listStatus?: number
 } = {}) {
   let mine = [...initial]
   const fetchMock = vi.fn(async (url: string, options?: RequestInit) => {
@@ -65,6 +70,22 @@ it('shows loading, server challenges, rewards and active status', async () => {
   expect(screen.getByText('1/3')).toBeTruthy()
   expect(screen.getAllByText('За один матч').length).toBeGreaterThan(0)
   expect(screen.getAllByText('100 XP').length).toBeGreaterThan(0)
+})
+
+it('loads completed challenges with numeric OpenDota match IDs', async () => {
+  window.history.replaceState(null, '', '/challenges')
+  const completed = {
+    ...enrollment(0, 'SUCCEEDED'),
+    completedAt: '2026-09-30T15:30:00.000Z',
+    completedByMatchId: '9023211143',
+    completedByMatch: {
+      id: '9023211143', startedAt: '2026-09-30T15:27:32.000Z', duration: 2042, matchMode: 22,
+    },
+  }
+  setup({ initial: [completed] })
+  expect(await screen.findByText('История испытаний')).toBeTruthy()
+  expect(screen.getAllByText('Выполнено').length).toBeGreaterThan(0)
+  expect(screen.queryByRole('alert')).toBeNull()
 })
 
 it('activates and cancels through API, then refreshes the active cache', async () => {

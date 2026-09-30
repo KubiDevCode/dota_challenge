@@ -2,7 +2,7 @@ import { existsSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { PrismaPg } from '@prisma/adapter-pg'
 import { PrismaClient } from '@aegis-trials/backend/generated/client'
-import { MatchProcessingService, StratzMatchProvider, StratzProviderError } from '@aegis-trials/backend'
+import { MatchProcessingService, OpenDotaMatchProvider, OpenDotaProviderError } from '@aegis-trials/backend'
 import { Queue, Worker } from 'bullmq'
 import IORedis from 'ioredis'
 import { closeWorkerResources, logJob, MATCH_SYNC_QUEUE, processSyncJob, retryDelay, SCAN_JOB } from './sync'
@@ -12,14 +12,14 @@ if (existsSync(envPath)) process.loadEnvFile(envPath)
 
 async function main(): Promise<void> {
   if (!process.env.DATABASE_URL || !process.env.REDIS_URL) throw new Error('DATABASE_URL and REDIS_URL are required')
-  const timeoutMs = process.env.STRATZ_TIMEOUT_MS ? Number(process.env.STRATZ_TIMEOUT_MS) : 10000
+  const timeoutMs = process.env.OPENDOTA_TIMEOUT_MS ? Number(process.env.OPENDOTA_TIMEOUT_MS) : 10000
   if (!Number.isSafeInteger(timeoutMs) || timeoutMs < 100 || timeoutMs > 60000) {
-    throw new Error('STRATZ_TIMEOUT_MS must be between 100 and 60000')
+    throw new Error('OPENDOTA_TIMEOUT_MS must be between 100 and 60000')
   }
   const redis = new IORedis(process.env.REDIS_URL, { maxRetriesPerRequest: null })
   const db = new PrismaClient({ adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }) })
   const queue = new Queue(MATCH_SYNC_QUEUE, { connection: redis })
-  const provider = new StratzMatchProvider({ token: process.env.STRATZ_API_TOKEN, timeoutMs })
+  const provider = new OpenDotaMatchProvider({ apiKey: process.env.OPENDOTA_API_KEY, timeoutMs })
   const pipeline = new MatchProcessingService(db, provider)
   const worker = new Worker(MATCH_SYNC_QUEUE,
     (job) => processSyncJob(job, db, pipeline, queue, redis),
@@ -29,7 +29,7 @@ async function main(): Promise<void> {
     const retrying = job.attemptsMade < (job.opts.attempts ?? 1) && !(error.name === 'UnrecoverableError')
     logJob(retrying ? 'job_retry' : 'job_failed', {
       job: job.name, userId: job.data?.userId, accountId: job.data?.accountId, attempt: job.attemptsMade,
-      code: error instanceof StratzProviderError ? error.code : error.name,
+      code: error instanceof OpenDotaProviderError ? error.code : error.name,
       ...(retrying && { delayMs: retryDelay(job.attemptsMade, error) }),
     })
   })

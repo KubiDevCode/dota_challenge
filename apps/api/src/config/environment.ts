@@ -66,12 +66,12 @@ export function validateEnvironment(env: Record<string, unknown>) {
     throw new Error('SESSION_MAX_AGE_MS must be between 60000 and 2592000000')
   }
 
-  const stratzTimeoutMs = Number(env.STRATZ_TIMEOUT_MS ?? 10000)
-  if (!Number.isSafeInteger(stratzTimeoutMs) || stratzTimeoutMs < 100 || stratzTimeoutMs > 60000) {
-    throw new Error('STRATZ_TIMEOUT_MS must be between 100 and 60000')
+  const openDotaTimeoutMs = Number(env.OPENDOTA_TIMEOUT_MS ?? 10000)
+  if (!Number.isSafeInteger(openDotaTimeoutMs) || openDotaTimeoutMs < 100 || openDotaTimeoutMs > 60000) {
+    throw new Error('OPENDOTA_TIMEOUT_MS must be between 100 and 60000')
   }
-  if (env.STRATZ_API_TOKEN !== undefined && typeof env.STRATZ_API_TOKEN !== 'string') {
-    throw new Error('STRATZ_API_TOKEN must be a string')
+  if (env.OPENDOTA_API_KEY !== undefined && typeof env.OPENDOTA_API_KEY !== 'string') {
+    throw new Error('OPENDOTA_API_KEY must be a string')
   }
 
   try {
@@ -99,7 +99,7 @@ export function validateEnvironment(env: Record<string, unknown>) {
     SESSION_COOKIE_DOMAIN: sessionCookieDomain,
     SESSION_MAX_AGE_MS: sessionMaxAgeMs,
     STEAM_API_KEY: env.STEAM_API_KEY,
-    STRATZ_API_TOKEN: env.STRATZ_API_TOKEN,
-    STRATZ_TIMEOUT_MS: stratzTimeoutMs,
+    OPENDOTA_API_KEY: env.OPENDOTA_API_KEY,
+    OPENDOTA_TIMEOUT_MS: openDotaTimeoutMs,
   }
 }

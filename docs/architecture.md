@@ -9,7 +9,7 @@ The repository uses npm workspaces with one root package-lock.json.
 | apps/web | Browser UI | React 18, TypeScript, Vite 6, Tailwind CSS 4; preserved prototype |
 | apps/api | HTTP boundary and persistence adapter | NestJS 11, validated configuration, shared Prisma service, health and Swagger |
 | apps/worker | Separate background process | BullMQ match synchronization worker and periodic scan |
-| packages/backend | Shared server-only code | MatchProvider, STRATZ adapter, match processing pipeline, Prisma client |
+| packages/backend | Shared server-only code | MatchProvider, OpenDota adapter, match processing pipeline, Prisma client |
 | packages/shared | Framework-independent cross-app contracts | Application name, API prefix, health response type |
 
 The browser prototype retains its existing routes, local challenge interactions, styles and mock data.
@@ -53,7 +53,7 @@ Nginx
                                Worker
                                   │
                                   ▼
-                               STRATZ
+                             OpenDota API
 ```
 
 BullMQ uses Redis as its queue storage; it is not a separate database. Redis also stores sessions,
@@ -61,7 +61,7 @@ manual refresh cooldowns and short-lived failure status. Nginx will serve the SP
 and proxy /api. There is no deployment setup here.
 Reward writes must be transactional and idempotent. The rule engine must remain independent of NestJS, Prisma and providers.
 
-STRATZ is isolated in `packages/backend/src/integrations/stratz`. The provider-neutral
+OpenDota is isolated in `packages/backend/src/integrations/opendota`. The provider-neutral
 `MatchProvider` contract lives in `packages/backend/src/integrations/match-provider.ts`:
 
 ```ts
@@ -76,18 +76,17 @@ interface MatchProvider {
 ```
 
 `ProviderMatch` contains a string match ID, start time, optional duration, normalized mode
-(`RANKED`, `ALL_PICK`, `UNSUPPORTED`), and normalized per-player metrics. Absent STRATZ stats remain
+(`RANKED`, `ALL_PICK`, `UNSUPPORTED`), and normalized per-player metrics. Absent provider stats remain
 absent, so the rule engine can later return `PENDING`. Provider metadata and raw match payload
 are available through `source` for persistence. The adapter never writes to Prisma;
 the match processing service calls it through the `MatchProvider` contract.
 
 The player history query fetches the latest 50 matches without a cursor. With `afterMatchId`,
-it scans descending pages until that match ID is reached, the history ends, or ten pages have
-been read. A scan that reaches the ten-page limit throws instead of returning incomplete data.
-`getMatch` requests one complete match. Both calls use a token from `STRATZ_API_TOKEN` and a
-configurable timeout (`STRATZ_TIMEOUT_MS`, default 10000). Missing token affects only provider
-calls. Rate limit errors expose retryability and `Retry-After`; external error text is not logged.
-OpenDota is not implemented.
+it scans pages until that match ID is reached, the history ends, or ten pages have been read.
+A scan that reaches the ten-page limit throws instead of returning incomplete data. `getMatch`
+requests a complete match. The public API works without a key; optional `OPENDOTA_API_KEY`
+raises rate limits. `OPENDOTA_TIMEOUT_MS` configures the request timeout (default 10000).
+Rate limit errors expose retryability and `Retry-After`; upstream error text is not logged.
 
 The match processing service in `packages/backend/src/matches` is called by the worker.
 `processPlayerMatches` fetches complete match details and processes
@@ -121,14 +120,14 @@ jobs are removed so later scans can enqueue again.
 `POST /api/me/matches/refresh` uses a Redis `SET NX PX` key for a 60-second cooldown.
 `GET /api/me/match-sync-status` returns only the authenticated user's state and last success.
 The worker persists a cursor and last successful time in `MatchSyncState` only after the pipeline
-finishes. Retries replay the same range safely. Pending evaluations are revisited when STRATZ
+finishes. Retries replay the same range safely. Pending evaluations are revisited when OpenDota
 may have filled missing statistics. Provider timeouts, rate limits and network failures retry
 up to four attempts with exponential backoff; permanent errors stop immediately. The worker
 closes BullMQ, Redis and Prisma on shutdown.
 
 ## Scope boundary
 
-Deferred: OpenDota, achievements and production deployment.
+Deferred: achievements and production deployment.
 
 Infrastructure follows the official NestJS documentation for
 [configuration](https://docs.nestjs.com/techniques/configuration),

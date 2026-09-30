@@ -1,7 +1,7 @@
 import { Queue, UnrecoverableError, Worker, type Job } from 'bullmq'
 import IORedis from 'ioredis'
 import { PrismaClient } from '@aegis-trials/backend/generated/client'
-import { MatchProcessingService, StratzProviderError } from '@aegis-trials/backend'
+import { MatchProcessingService, OpenDotaProviderError } from '@aegis-trials/backend'
 
 export const MATCH_SYNC_QUEUE = 'match-sync'
 export const PLAYER_SYNC_JOB = 'player-match-sync'
@@ -14,7 +14,7 @@ export const SYNC_JOB_OPTIONS = {
 }
 
 export function retryDelay(attemptsMade: number, error: Error): number {
-  if (!(error instanceof StratzProviderError) || !error.retryable) return -1
+  if (!(error instanceof OpenDotaProviderError) || !error.retryable) return -1
   return Math.max(Math.min(60_000, 5_000 * 2 ** (attemptsMade - 1)), error.retryAfterMs ?? 0)
 }
 
@@ -77,8 +77,8 @@ export async function processSyncJob(
     logJob('job_completed', { job: PLAYER_SYNC_JOB, userId, accountId, matchCount: result.matchCount })
     return { matchCount: result.matchCount }
   } catch (error) {
-    const retryable = error instanceof StratzProviderError && error.retryable
-    const code = error instanceof StratzProviderError ? error.code : 'PROCESSING_ERROR'
+    const retryable = error instanceof OpenDotaProviderError && error.retryable
+    const code = error instanceof OpenDotaProviderError ? error.code : 'PROCESSING_ERROR'
     try {
       await redis.hset(`aegis:match-sync:failure:${userId}`, {
         failedAt: String(Date.now()), retryable: String(retryable), code,

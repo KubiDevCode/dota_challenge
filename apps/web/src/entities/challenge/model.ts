@@ -3,6 +3,7 @@ import { z } from 'zod'
 export const difficultySchema = z.enum(['EASY', 'MEDIUM', 'HARD'])
 export const modeSchema = z.enum(['PERSISTENT', 'SINGLE_MATCH'])
 export const statusSchema = z.enum(['ACTIVE', 'CANCELLED', 'SUCCEEDED', 'FAILED'])
+const matchIdSchema = z.string().regex(/^[1-9]\d{0,19}$/)
 
 export const challengeSchema = z.object({
   id: z.string().uuid(),
@@ -24,8 +25,8 @@ export const enrollmentSchema = z.object({
   activatedAt: z.string(),
   attemptsChecked: z.number(),
   completedAt: z.string().nullable(),
-  completedByMatchId: z.string().uuid().nullable(),
-  completedByMatch: z.object({ id: z.string().uuid(), startedAt: z.string(), duration: z.number().nullable(), matchMode: z.number().nullable() }).nullable(),
+  completedByMatchId: matchIdSchema.nullable(),
+  completedByMatch: z.object({ id: matchIdSchema, startedAt: z.string(), duration: z.number().nullable(), matchMode: z.number().nullable() }).nullable(),
 })
 
 export type Challenge = z.infer<typeof challengeSchema>

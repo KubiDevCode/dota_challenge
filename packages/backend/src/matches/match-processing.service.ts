@@ -71,7 +71,7 @@ export class MatchProcessingService {
     })) {
       await this.processProviderMatch(userId, await this.provider.getMatch(item.id))
     }
-    // Revisit incomplete evaluations: STRATZ may supply missing metrics later.
+    // Revisit incomplete evaluations when a provider fills missing metrics later.
     const pending = await this.db.challengeEvaluation.findMany({
       where: { userChallenge: { userId, status: 'ACTIVE' }, status: 'PENDING' },
       select: { matchId: true }, distinct: ['matchId'],
@@ -91,17 +91,18 @@ export class MatchProcessingService {
       if (locked.length === 0) throw new NotFoundException('User not found')
       const player = match.players.find((entry) => BigInt(entry.accountId) === locked[0].accountId32)
       if (!player) throw new Error('Provider match does not belong to the user')
-      if (match.source.provider !== 'STRATZ') throw new Error('Unsupported match provider')
+      if (match.source.provider !== 'OPENDOTA') throw new Error('Unsupported match provider')
 
       const persistedMatch = await tx.match.upsert({
         where: { id: match.id },
         create: {
-          id: match.id, provider: 'STRATZ', startedAt: match.startedAt,
+          id: match.id, provider: 'OPENDOTA', startedAt: match.startedAt,
           duration: match.durationSeconds ?? null, matchMode: match.source.gameModeId ?? null,
           lobbyType: match.source.lobbyTypeId ?? null,
           rawPayload: match.source.rawPayload as Prisma.InputJsonValue,
         },
         update: {
+          provider: 'OPENDOTA',
           ...(match.durationSeconds !== undefined && { duration: match.durationSeconds }),
           ...(match.source.gameModeId !== undefined && { matchMode: match.source.gameModeId }),
           ...(match.source.lobbyTypeId !== undefined && { lobbyType: match.source.lobbyTypeId }),

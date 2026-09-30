@@ -32,11 +32,11 @@ NestJS is a modular monolith. The worker runs as a separate process.
 
 - Controllers contain no business logic. Services implement use cases.
 - Isolate database access and wrap external integrations in adapters.
-- The rule engine must not depend on NestJS, Prisma or STRATZ.
+- The rule engine must not depend on NestJS, Prisma or a match provider.
 - API and Worker may use packages/shared. Keep it browser-safe and framework-independent.
 - Do not import app internals into another app or into packages/shared.
 - Rewards must be awarded transactionally and idempotently.
-- STRATZ will be hidden behind MatchProvider. OpenDota is not implemented.
+- OpenDota is hidden behind MatchProvider; provider payloads stay out of business logic.
 
 ## Security
 

@@ -70,6 +70,7 @@ enum EvaluationStatus {
 }
 enum MatchProvider {
   STRATZ
+  OPENDOTA
 }
 
 model User {
@@ -172,7 +173,7 @@ model UserChallenge {
 
 model Match {
   id          String        @id @db.VarChar(20)
-  provider    MatchProvider @default(STRATZ)
+  provider    MatchProvider @default(OPENDOTA)
   startedAt   DateTime      @db.Timestamptz(3)
   duration    Int?
   matchMode   Int?

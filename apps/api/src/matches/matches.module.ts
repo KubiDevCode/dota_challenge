@@ -3,7 +3,7 @@ import { PrismaClient as BackendPrismaClient } from '@aegis-trials/backend/gener
 import { AuthModule } from '../auth/auth.module'
 import { DatabaseModule } from '../database'
 import { PrismaService } from '../database/prisma.service'
-import { StratzModule } from '../integrations/stratz'
+import { OpenDotaModule } from '../integrations/opendota'
 import { UsersModule } from '../users/users.module'
 import { MatchHistoryController } from './match-history.controller'
 import { MatchHistoryService } from './match-history.service'
@@ -11,7 +11,7 @@ import { MatchProcessingService } from './match-processing.service'
 import { MatchSyncController } from './match-sync.controller'
 import { MatchSyncService } from './match-sync.service'
 
-@Module({ imports: [DatabaseModule, StratzModule, AuthModule, UsersModule], controllers: [MatchHistoryController, MatchSyncController],
+@Module({ imports: [DatabaseModule, OpenDotaModule, AuthModule, UsersModule], controllers: [MatchHistoryController, MatchSyncController],
   providers: [
     { provide: BackendPrismaClient, useExisting: PrismaService },
     MatchProcessingService, MatchHistoryService, MatchSyncService,

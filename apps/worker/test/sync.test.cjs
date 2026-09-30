@@ -1,20 +1,20 @@
 const assert = require('node:assert/strict')
 const { test } = require('node:test')
-const { StratzProviderError } = require('@aegis-trials/backend')
+const { OpenDotaProviderError } = require('@aegis-trials/backend')
 const { UnrecoverableError } = require('bullmq')
 const { closeWorkerResources, processSyncJob, retryDelay, scanActiveUsers, SYNC_JOB_OPTIONS } = require('../dist/sync')
 
-test('transient STRATZ failures retry with exponential backoff and Retry-After; permanent failures stop', () => {
+test('transient OpenDota failures retry with exponential backoff and Retry-After; permanent failures stop', () => {
   assert.equal(SYNC_JOB_OPTIONS.attempts, 4)
   assert.equal(SYNC_JOB_OPTIONS.backoff.type, 'custom')
-  const timeout = new StratzProviderError('TIMEOUT', true)
+  const timeout = new OpenDotaProviderError('TIMEOUT', true)
   assert.equal(retryDelay(1, timeout), 5000)
   assert.equal(retryDelay(2, timeout), 10000)
   assert.equal(retryDelay(4, timeout), 40000)
-  assert.equal(retryDelay(1, new StratzProviderError('RATE_LIMITED', true, 30000)), 30000)
-  assert.equal(retryDelay(1, new StratzProviderError('NETWORK_ERROR', true)), 5000)
-  assert.equal(retryDelay(1, new StratzProviderError('HTTP_ERROR', true, undefined, 503)), 5000)
-  assert.equal(retryDelay(1, new StratzProviderError('NOT_FOUND', false)), -1)
+  assert.equal(retryDelay(1, new OpenDotaProviderError('RATE_LIMITED', true, 30000)), 30000)
+  assert.equal(retryDelay(1, new OpenDotaProviderError('NETWORK_ERROR', true)), 5000)
+  assert.equal(retryDelay(1, new OpenDotaProviderError('HTTP_ERROR', true, undefined, 503)), 5000)
+  assert.equal(retryDelay(1, new OpenDotaProviderError('NOT_FOUND', false)), -1)
 })
 
 function fixture(processPlayerMatches) {
@@ -49,10 +49,10 @@ test('successful sync saves cursor only after pipeline completes; duplicate exec
 })
 
 test('retryable failure preserves successful cursor and permanent error has no success write', async () => {
-  const f = fixture(async () => { throw new StratzProviderError('TIMEOUT', true) })
-  await assert.rejects(processSyncJob(f.job, f.db, f.pipeline, f.queue, f.redis), StratzProviderError)
+  const f = fixture(async () => { throw new OpenDotaProviderError('TIMEOUT', true) })
+  await assert.rejects(processSyncJob(f.job, f.db, f.pipeline, f.queue, f.redis), OpenDotaProviderError)
   assert.equal(f.states.length, 0)
-  f.pipeline.processPlayerMatches = async () => { throw new StratzProviderError('NOT_FOUND', false) }
+  f.pipeline.processPlayerMatches = async () => { throw new OpenDotaProviderError('NOT_FOUND', false) }
   await assert.rejects(processSyncJob(f.job, f.db, f.pipeline, f.queue, f.redis), UnrecoverableError)
   assert.equal(f.states.length, 0)
 })

@@ -1,4 +1,0 @@
-{
-  "data": { "match": null },
-  "errors": [{ "message": "Sanitized upstream resolver error", "extensions": { "code": "INTERNAL_ERROR" } }]
-}

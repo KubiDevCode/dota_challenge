@@ -80,7 +80,7 @@ test('match pipeline persists, evaluates and grants exactly once against Postgre
           kills: options.kills === undefined ? 3 : options.kills,
           deaths: 1, assists: 4, lastHits: 50, heroDamage: 5000,
           towerDamage: 100, wardsPlaced: 1, heroId: 1 }],
-        source: { provider: 'STRATZ', gameModeId, lobbyTypeId, rawPayload: { id } },
+        source: { provider: 'OPENDOTA', gameModeId, lobbyTypeId, rawPayload: { id } },
       }
       if (options.missingKills) delete match.players[0].kills
       if (options.duration === null) delete match.durationSeconds
@@ -118,6 +118,7 @@ test('match pipeline persists, evaluates and grants exactly once against Postgre
       assert.equal((await evaluations(rankA.id)).length, 1)
       assert.equal((await evaluations(rankB.id)).length, 1)
       assert.equal(await db.match.count({ where: { id: winner.id } }), 1)
+      assert.equal((await db.match.findUniqueOrThrow({ where: { id: winner.id } })).provider, 'OPENDOTA')
       assert.equal(await db.playerMatchStats.count({ where: { matchId: winner.id } }), 1)
       assert.deepEqual((await db.match.findUniqueOrThrow({ where: { id: winner.id } })).rawPayload, { id: winner.id })
       assert.equal(await db.rewardLedger.count({ where: { userId: user.id } }), 2)

@@ -6,7 +6,7 @@ import { HealthController } from './health.controller'
 import { DatabaseModule } from './database'
 import { ChallengesModule } from './challenges/challenges.module'
 import { AuthModule } from './auth/auth.module'
-import { StratzModule } from './integrations/stratz'
+import { OpenDotaModule } from './integrations/opendota'
 import { MatchesModule } from './matches/matches.module'
 import { RankingsModule } from './rankings/rankings.module'
 import { AdminModule } from './admin/admin.module'
@@ -16,7 +16,7 @@ import { AdminModule } from './admin/admin.module'
     isGlobal: true,
     envFilePath: resolve(__dirname, '../../../.env'),
     validate: validateEnvironment,
-  }), DatabaseModule, ChallengesModule, AuthModule, AdminModule, StratzModule, MatchesModule, RankingsModule],
+  }), DatabaseModule, ChallengesModule, AuthModule, AdminModule, OpenDotaModule, MatchesModule, RankingsModule],
   controllers: [HealthController],
 })
 export class AppModule {}
