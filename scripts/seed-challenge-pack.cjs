@@ -24,39 +24,49 @@ const weekly = 'Еженедельные'
 const permanent = 'Постоянные'
 
 const challenges = [
-  challenge(daily, 'Ежедневная победа', 'Заверши матч победой.', 'EASY', 'SINGLE_MATCH', 60, [['win', 'EQ', true]]),
-  challenge(daily, 'Первый вклад', 'Соверши не меньше 3 убийств за матч.', 'EASY', 'SINGLE_MATCH', 50, [['kills', 'GTE', 3]]),
-  challenge(daily, 'Надёжный союзник', 'Набери не меньше 8 помощей за матч.', 'EASY', 'PERSISTENT', 70, [['assists', 'GTE', 8]]),
-  challenge(daily, 'Осторожная игра', 'Заверши матч, умерев не больше 4 раз.', 'EASY', 'PERSISTENT', 60, [['deaths', 'LTE', 4]]),
-  challenge(daily, 'Урон по героям', 'Нанеси героям не меньше 18 000 урона за матч.', 'MEDIUM', 'PERSISTENT', 90, [['heroDamage', 'GTE', 18000]]),
-  challenge(daily, 'Под давлением', 'Нанеси строениям не меньше 1 200 урона за матч.', 'EASY', 'SINGLE_MATCH', 60, [['towerDamage', 'GTE', 1200]]),
-  challenge(daily, 'Фермерский темп', 'Соверши не меньше 180 добиваний за матч.', 'MEDIUM', 'PERSISTENT', 90, [['lastHits', 'GTE', 180]]),
-  challenge(daily, 'Обзор на карте', 'Установи не меньше 2 вардов за матч.', 'EASY', 'SINGLE_MATCH', 50, [['wardsPlaced', 'GTE', 2]]),
-  challenge(daily, 'Участник каждой драки', 'Добейся участия минимум в 55% убийств своей команды.', 'MEDIUM', 'PERSISTENT', 100, [['killParticipation', 'GTE', 0.55]]),
-  challenge(daily, 'Быстрое решение', 'Заверши матч продолжительностью не больше 35 минут.', 'MEDIUM', 'SINGLE_MATCH', 80, [['duration', 'LTE', 2100]]),
+  challenge(daily, 'Трон или смерть', 'Победи, совершив не меньше 8 убийств и умерев не больше 5 раз.', 'HARD', 'SINGLE_MATCH', 150, [['win', 'EQ', true], ['kills', 'GTE', 8], ['deaths', 'LTE', 5]]),
+  challenge(daily, 'Владыка линии', 'Добей не меньше 280 крипов и нанеси героям 20 000 урона за матч.', 'MEDIUM', 'SINGLE_MATCH', 120, [['lastHits', 'GTE', 280], ['heroDamage', 'GTE', 20000]]),
+  challenge(daily, 'Вижу всё', 'Установи 4 варда и набери не меньше 12 помощей.', 'MEDIUM', 'PERSISTENT', 130, [['wardsPlaced', 'GTE', 4], ['assists', 'GTE', 12]]),
+  challenge(daily, 'Без права на фид', 'Победи, умерев не больше 2 раз.', 'HARD', 'PERSISTENT', 160, [['win', 'EQ', true], ['deaths', 'LTE', 2]]),
+  challenge(daily, 'Снежный ком', 'Соверши 10 убийств и участвуй минимум в 65% убийств команды.', 'HARD', 'SINGLE_MATCH', 170, [['kills', 'GTE', 10], ['killParticipation', 'GTE', 0.65]]),
+  challenge(daily, 'Осадная машина', 'Победи и нанеси строениям не меньше 3 000 урона.', 'MEDIUM', 'SINGLE_MATCH', 130, [['win', 'EQ', true], ['towerDamage', 'GTE', 3000]]),
+  challenge(daily, 'Ферма до рассвета', 'Добей не меньше 320 крипов за матч.', 'HARD', 'PERSISTENT', 150, [['lastHits', 'GTE', 320]]),
+  challenge(daily, 'Четыре глаза', 'Установи 4 варда и набери 10 помощей за один матч.', 'MEDIUM', 'SINGLE_MATCH', 120, [['wardsPlaced', 'GTE', 4], ['assists', 'GTE', 10]]),
+  challenge(daily, 'В центре мясорубки', 'Участвуй минимум в 80% убийств команды и набери 15 помощей.', 'HARD', 'PERSISTENT', 170, [['killParticipation', 'GTE', 0.8], ['assists', 'GTE', 15]]),
+  challenge(daily, 'Закрой до лейта', 'Победи в матче короче 35 минут.', 'HARD', 'SINGLE_MATCH', 150, [['win', 'EQ', true], ['duration', 'LTE', 2100]]),
 
-  challenge(weekly, 'Убедительная победа', 'Победи и соверши не меньше 5 убийств в одном матче.', 'MEDIUM', 'SINGLE_MATCH', 130, [['win', 'EQ', true], ['kills', 'GTE', 5]]),
-  challenge(weekly, 'Осада', 'Нанеси строениям не меньше 3 500 урона за матч.', 'MEDIUM', 'PERSISTENT', 140, [['towerDamage', 'GTE', 3500]]),
-  challenge(weekly, 'Глубокий обзор', 'Установи не меньше 5 вардов за матч.', 'MEDIUM', 'PERSISTENT', 120, [['wardsPlaced', 'GTE', 5]]),
-  challenge(weekly, 'Большой урожай', 'Соверши не меньше 300 добиваний за матч.', 'HARD', 'PERSISTENT', 180, [['lastHits', 'GTE', 300]]),
-  challenge(weekly, 'Голос команды', 'Набери не меньше 18 помощей за матч.', 'HARD', 'PERSISTENT', 170, [['assists', 'GTE', 18]]),
-  challenge(weekly, 'Без права на ошибку', 'Победи, умерев не больше 3 раз.', 'HARD', 'SINGLE_MATCH', 180, [['win', 'EQ', true], ['deaths', 'LTE', 3]]),
-  challenge(weekly, 'Мастер урона', 'Нанеси героям не меньше 35 000 урона за матч.', 'HARD', 'PERSISTENT', 180, [['heroDamage', 'GTE', 35000]]),
-  challenge(weekly, 'В центре событий', 'Добейся участия минимум в 75% убийств своей команды.', 'HARD', 'PERSISTENT', 200, [['killParticipation', 'GTE', 0.75]]),
-  challenge(weekly, 'Долгая осада', 'Сыграй матч продолжительностью не меньше 50 минут.', 'MEDIUM', 'SINGLE_MATCH', 140, [['duration', 'GTE', 3000]]),
-  challenge(weekly, 'Опора команды', 'Победи и набери не меньше 12 помощей за матч.', 'MEDIUM', 'PERSISTENT', 160, [['win', 'EQ', true], ['assists', 'GTE', 12]]),
+  challenge(weekly, 'Разнос линии', 'Победи с 12 убийствами и не более чем 4 смертями.', 'HARD', 'SINGLE_MATCH', 260, [['win', 'EQ', true], ['kills', 'GTE', 12], ['deaths', 'LTE', 4]]),
+  challenge(weekly, 'Крип-магнит', 'Добей 450 крипов и закончи матч победой.', 'HARD', 'PERSISTENT', 280, [['lastHits', 'GTE', 450], ['win', 'EQ', true]]),
+  challenge(weekly, 'Плеймейкер недели', 'Набери 25 помощей и участвуй минимум в 75% убийств команды.', 'HARD', 'PERSISTENT', 300, [['assists', 'GTE', 25], ['killParticipation', 'GTE', 0.75]]),
+  challenge(weekly, 'Сноси трон', 'Победи, нанеся строениям не меньше 7 000 урона.', 'HARD', 'SINGLE_MATCH', 300, [['win', 'EQ', true], ['towerDamage', 'GTE', 7000]]),
+  challenge(weekly, 'Король драки', 'Соверши 10 убийств и участвуй минимум в 90% убийств команды.', 'HARD', 'PERSISTENT', 320, [['kills', 'GTE', 10], ['killParticipation', 'GTE', 0.9]]),
+  challenge(weekly, 'Чистая статистика', 'Победи, умерев не больше одного раза.', 'HARD', 'SINGLE_MATCH', 280, [['win', 'EQ', true], ['deaths', 'LTE', 1]]),
+  challenge(weekly, 'Урон без пощады', 'Нанеси героям 55 000 урона и набери 12 помощей.', 'HARD', 'PERSISTENT', 320, [['heroDamage', 'GTE', 55000], ['assists', 'GTE', 12]]),
+  challenge(weekly, 'Марафон победы', 'Победи в матче продолжительностью не меньше 60 минут.', 'HARD', 'PERSISTENT', 300, [['duration', 'GTE', 3600], ['win', 'EQ', true]]),
+  challenge(weekly, 'Вардовая империя', 'Установи 8 вардов и набери 20 помощей за матч.', 'HARD', 'PERSISTENT', 300, [['wardsPlaced', 'GTE', 8], ['assists', 'GTE', 20]]),
+  challenge(weekly, 'Крепкий керри', 'Нанеси 40 000 урона героям, совершив 8 убийств и умерев не больше 3 раз.', 'HARD', 'SINGLE_MATCH', 330, [['heroDamage', 'GTE', 40000], ['kills', 'GTE', 8], ['deaths', 'LTE', 3]]),
 
-  challenge(permanent, 'Серия победителя', 'Победи, совершив не меньше 8 убийств за матч.', 'HARD', 'PERSISTENT', 220, [['win', 'EQ', true], ['kills', 'GTE', 8]]),
-  challenge(permanent, 'Несокрушимый', 'Заверши победный матч, умерев не больше 2 раз.', 'HARD', 'PERSISTENT', 220, [['win', 'EQ', true], ['deaths', 'LTE', 2]]),
-  challenge(permanent, 'Легенда фарма', 'Соверши не меньше 400 добиваний за матч.', 'HARD', 'PERSISTENT', 220, [['lastHits', 'GTE', 400]]),
-  challenge(permanent, 'Разрушитель крепостей', 'Нанеси строениям не меньше 6 000 урона за матч.', 'HARD', 'PERSISTENT', 230, [['towerDamage', 'GTE', 6000]]),
-  challenge(permanent, 'Главный дамагер', 'Нанеси героям не меньше 50 000 урона за матч.', 'HARD', 'PERSISTENT', 240, [['heroDamage', 'GTE', 50000]]),
-  challenge(permanent, 'Командный двигатель', 'Набери не меньше 25 помощей в одном матче.', 'HARD', 'PERSISTENT', 220, [['assists', 'GTE', 25]]),
-  challenge(permanent, 'Идеальный вклад', 'Добейся участия минимум в 90% убийств своей команды.', 'HARD', 'PERSISTENT', 250, [['killParticipation', 'GTE', 0.9]]),
-  challenge(permanent, 'Длинная дистанция', 'Сыграй матч продолжительностью не меньше 60 минут.', 'HARD', 'PERSISTENT', 200, [['duration', 'GTE', 3600]]),
-  challenge(permanent, 'Убийца строений', 'Победи и нанеси строениям не меньше 3 000 урона.', 'HARD', 'PERSISTENT', 240, [['win', 'EQ', true], ['towerDamage', 'GTE', 3000]]),
-  challenge(permanent, 'Гроза поля боя', 'Соверши не меньше 12 убийств и набери 10 помощей за матч.', 'HARD', 'SINGLE_MATCH', 250, [['kills', 'GTE', 12], ['assists', 'GTE', 10]]),
+  challenge(permanent, 'Ни одной ошибки', 'Победи, совершив 10 убийств и умерев не больше одного раза.', 'HARD', 'PERSISTENT', 450, [['win', 'EQ', true], ['kills', 'GTE', 10], ['deaths', 'LTE', 1]]),
+  challenge(permanent, 'Доминатор', 'Соверши 15 убийств и участвуй минимум в 80% убийств команды.', 'HARD', 'PERSISTENT', 500, [['kills', 'GTE', 15], ['killParticipation', 'GTE', 0.8]]),
+  challenge(permanent, 'Снос базы', 'Победи и нанеси строениям не меньше 10 000 урона.', 'HARD', 'PERSISTENT', 500, [['win', 'EQ', true], ['towerDamage', 'GTE', 10000]]),
+  challenge(permanent, 'Бесконечный фарм', 'Добей 600 крипов и закончи матч победой.', 'HARD', 'PERSISTENT', 500, [['lastHits', 'GTE', 600], ['win', 'EQ', true]]),
+  challenge(permanent, 'Армагеддон', 'Нанеси героям 70 000 урона и соверши 12 убийств за матч.', 'HARD', 'PERSISTENT', 550, [['heroDamage', 'GTE', 70000], ['kills', 'GTE', 12]]),
+  challenge(permanent, 'Неуловимый', 'Победи, не умерев ни разу, и нанеси не меньше 25 000 урона героям.', 'HARD', 'SINGLE_MATCH', 550, [['win', 'EQ', true], ['deaths', 'LTE', 0], ['heroDamage', 'GTE', 25000]]),
+  challenge(permanent, 'Связующее звено', 'Набери 30 помощей и участвуй минимум в 85% убийств команды.', 'HARD', 'PERSISTENT', 500, [['assists', 'GTE', 30], ['killParticipation', 'GTE', 0.85]]),
+  challenge(permanent, 'Битва до последнего', 'Победи в матче продолжительностью не меньше 75 минут.', 'HARD', 'SINGLE_MATCH', 500, [['duration', 'GTE', 4500], ['win', 'EQ', true]]),
+  challenge(permanent, 'Тотальный контроль', 'Участвуй минимум в 95% убийств команды и соверши 12 убийств.', 'HARD', 'PERSISTENT', 600, [['killParticipation', 'GTE', 0.95], ['kills', 'GTE', 12]]),
+  challenge(permanent, 'Мастер на все руки', 'Победи, нанеся 40 000 урона героям и 5 000 урона строениям.', 'HARD', 'PERSISTENT', 600, [['win', 'EQ', true], ['heroDamage', 'GTE', 40000], ['towerDamage', 'GTE', 5000]]),
 ]
+
+const previousTitles = [
+  'Ежедневная победа', 'Первый вклад', 'Надёжный союзник', 'Осторожная игра', 'Урон по героям',
+  'Под давлением', 'Фермерский темп', 'Обзор на карте', 'Участник каждой драки', 'Быстрое решение',
+  'Убедительная победа', 'Осада', 'Глубокий обзор', 'Большой урожай', 'Голос команды',
+  'Без права на ошибку', 'Мастер урона', 'В центре событий', 'Долгая осада', 'Опора команды',
+  'Серия победителя', 'Несокрушимый', 'Легенда фарма', 'Разрушитель крепостей', 'Главный дамагер',
+  'Командный двигатель', 'Идеальный вклад', 'Длинная дистанция', 'Убийца строений', 'Гроза поля боя',
+]
+const previousTitleByTitle = new Map(challenges.map(({ title }, index) => [title, previousTitles[index]]))
 
 if (challenges.length !== 30) throw new Error(`Expected 30 challenges, got ${challenges.length}`)
 if (new Set(challenges.map(({ title }) => title)).size !== challenges.length) throw new Error('Challenge titles must be unique')
@@ -67,25 +77,38 @@ const db = new PrismaClient({
 
 async function main() {
   const titles = challenges.map(({ title }) => title)
-  const existing = await db.challenge.findMany({ where: { title: { in: titles } }, select: { title: true } })
-  const existingTitles = new Set(existing.map(({ title }) => title))
-  const missing = challenges.filter(({ title }) => !existingTitles.has(title))
-
-  await db.$transaction(missing.map(({ rules, ...data }) => db.challenge.create({
-    data: { ...data, rules: { create: rules.map(({ metric, operator, value }) => ({
+  const lookupTitles = [...titles, ...previousTitles]
+  const existing = await db.challenge.findMany({ where: { title: { in: lookupTitles } }, select: { id: true, title: true } })
+  const existingByTitle = new Map(existing.map((row) => [row.title, row]))
+  let created = 0
+  let updated = 0
+  const operations = challenges.map(({ rules, ...data }) => {
+    const previousTitle = previousTitleByTitle.get(data.title)
+    const existingRow = existingByTitle.get(data.title) || existingByTitle.get(previousTitle)
+    const ruleData = rules.map(({ metric, operator, value }) => ({
       metric,
       operator,
       numberValue: metric === 'win' ? null : value,
       booleanValue: metric === 'win' ? value : null,
-    })) } },
-  })), { maxWait: 15000, timeout: 60000 })
+    }))
+    if (!existingRow) {
+      created += 1
+      return db.challenge.create({ data: { ...data, rules: { create: ruleData } } })
+    }
+    updated += 1
+    return db.challenge.update({ where: { id: existingRow.id }, data: {
+      ...data,
+      rules: { deleteMany: {}, create: ruleData },
+    } })
+  })
+  await db.$transaction(operations, { maxWait: 15000, timeout: 60000 })
 
   const summary = await db.challenge.groupBy({
     by: ['category', 'mode', 'publicationStatus'],
     where: { title: { in: titles } },
     _count: { _all: true },
   })
-  console.log(JSON.stringify({ created: missing.length, alreadyPresent: existing.length, catalog: summary }, null, 2))
+  console.log(JSON.stringify({ created, updated, total: challenges.length, catalog: summary }, null, 2))
 }
 
 main().catch((error) => {
