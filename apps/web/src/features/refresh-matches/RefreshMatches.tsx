@@ -15,6 +15,7 @@ export function RefreshMatches() {
   const [now, setNow] = useState(Date.now())
   const [outcome, setOutcome] = useState<'success' | null>(null)
   const previousSuccess = useRef<string | null>(null)
+  const observedSuccess = useRef<string | null | undefined>(undefined)
   const status = useQuery({
     queryKey: ['match-sync-status'],
     queryFn: async ({ signal }) => statusSchema.parse(await apiRequest('/me/match-sync-status', { signal })),
@@ -36,14 +37,22 @@ export function RefreshMatches() {
   })
 
   useEffect(() => {
-    if (!monitorUntil || !status.data) return
+    if (!status.data) return
+    const lastSuccessfulSync = status.data.lastSuccessfulSync
+    if (observedSuccess.current === undefined || observedSuccess.current !== lastSuccessfulSync) {
+      observedSuccess.current = lastSuccessfulSync
+      if (lastSuccessfulSync) {
+        void client.invalidateQueries({ queryKey: ['my-matches'] })
+        void client.invalidateQueries({ queryKey: ['public-profile'] })
+        void client.invalidateQueries({ queryKey: ['my-challenges'] })
+      }
+    }
+
+    if (!monitorUntil) return
     if (status.data.status === 'failed') { setMonitorUntil(0); return }
-    if (status.data.lastSuccessfulSync && status.data.lastSuccessfulSync !== previousSuccess.current) {
+    if (lastSuccessfulSync && lastSuccessfulSync !== previousSuccess.current) {
       setOutcome('success')
       setMonitorUntil(0)
-      void client.invalidateQueries({ queryKey: ['my-matches'] })
-      void client.invalidateQueries({ queryKey: ['public-profile'] })
-      void client.invalidateQueries({ queryKey: ['my-challenges'] })
     }
   }, [client, monitorUntil, status.data])
 
