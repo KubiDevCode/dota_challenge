@@ -71,6 +71,48 @@ it('creates a challenge using the structured rule builder and edits its reward',
   await waitFor(() => expect(fetchMock.mock.calls.some(([url, options]) => url === '/api/admin/challenges/challenge-1' && options.method === 'PATCH')).toBe(true))
 })
 
+it('submits a boolean value after switching a numeric rule to win', async () => {
+  const created = challenge()
+  const fetchMock = successFetch()
+  fetchMock.mockImplementation((url: string, options?: RequestInit) => {
+    if (url.endsWith('/me')) return Promise.resolve(json(user()))
+    if (url.endsWith('/admin/challenges') && options?.method === 'POST') return Promise.resolve(json(created, 201))
+    if (url.endsWith('/admin/challenges')) return Promise.resolve(json([]))
+    if (url.endsWith('/admin/seasons')) return Promise.resolve(json([]))
+    if (url.endsWith('/admin/level-thresholds')) return Promise.resolve(json([]))
+    return Promise.resolve(json({}))
+  })
+  openAdmin(fetchMock)
+  fireEvent.click(await screen.findByRole('button', { name: 'Создать испытание' }))
+  fireEvent.change(screen.getByLabelText('Название'), { target: { value: 'Win a match' } })
+  fireEvent.change(screen.getByLabelText('Категория'), { target: { value: 'combat' } })
+  fireEvent.change(screen.getByLabelText('Метрика правила 1'), { target: { value: 'win' } })
+  fireEvent.change(screen.getByLabelText('Значение правила 1'), { target: { value: 'false' } })
+  fireEvent.click(screen.getByRole('button', { name: 'Сохранить испытание' }))
+  await waitFor(() => expect(fetchMock.mock.calls.some(([url, options]) => url === '/api/admin/challenges' && options?.method === 'POST')).toBe(true))
+  const sent = JSON.parse(fetchMock.mock.calls.find(([url, options]) => url === '/api/admin/challenges' && options?.method === 'POST')![1].body)
+  expect(sent.rules).toEqual([{ metric: 'win', operator: 'EQ', value: false }])
+})
+
+it('keeps a pre-existing win rule boolean when editing a challenge', async () => {
+  const existing = challenge()
+  const fetchMock = successFetch('ADMIN', { challenges: [existing], seasons: [], thresholds: [] })
+  fetchMock.mockImplementation((url: string, options?: RequestInit) => {
+    if (url.endsWith('/me')) return Promise.resolve(json(user()))
+    if (url.endsWith('/admin/challenges/challenge-1') && options?.method === 'PATCH') return Promise.resolve(json(existing))
+    if (url.endsWith('/admin/challenges')) return Promise.resolve(json([existing]))
+    if (url.endsWith('/admin/seasons')) return Promise.resolve(json([]))
+    if (url.endsWith('/admin/level-thresholds')) return Promise.resolve(json([]))
+    return Promise.resolve(json({}))
+  })
+  openAdmin(fetchMock)
+  fireEvent.click(await screen.findByRole('button', { name: 'Изменить' }))
+  fireEvent.click(screen.getByRole('button', { name: 'Сохранить испытание' }))
+  await waitFor(() => expect(fetchMock.mock.calls.some(([url, options]) => url === '/api/admin/challenges/challenge-1' && options?.method === 'PATCH')).toBe(true))
+  const sent = JSON.parse(fetchMock.mock.calls.find(([url, options]) => url === '/api/admin/challenges/challenge-1' && options?.method === 'PATCH')![1].body)
+  expect(sent.rules).toEqual([{ metric: 'win', operator: 'EQ', value: true }])
+})
+
 it('validates incompatible rules before sending them to the API', async () => {
   const fetchMock = successFetch()
   openAdmin(fetchMock)
