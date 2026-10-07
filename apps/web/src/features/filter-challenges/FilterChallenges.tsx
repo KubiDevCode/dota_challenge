@@ -1,21 +1,27 @@
 import { Search } from 'lucide-react'
 import { useSearchParams } from 'react-router-dom'
 import { difficultyLabel, modeLabel } from '../../entities/challenge'
-import type { ChallengeFilters, ChallengeMode, Difficulty } from '../../entities/challenge'
+import type { ChallengeFilters, ChallengeMode, ChallengePeriod, Difficulty } from '../../entities/challenge'
 
 const difficulties: Difficulty[] = ['EASY', 'MEDIUM', 'HARD']
 const modes: ChallengeMode[] = ['PERSISTENT', 'SINGLE_MATCH']
+const categories: { id: ChallengePeriod; label: string }[] = [
+  { id: 'DAILY', label: 'Ежедневные' }, { id: 'WEEKLY', label: 'Еженедельные' },
+  { id: 'MONTHLY', label: 'Ежемесячные' }, { id: 'PERMANENT', label: 'Постоянные' },
+]
 
 export function useChallengeFilter() {
   const [params, setParams] = useSearchParams()
   const rawDifficulty = params.get('difficulty')?.toUpperCase()
   const rawMode = params.get('mode')
+  const rawPeriod = params.get('period')
   const rawPage = Number(params.get('page'))
   const filters: ChallengeFilters = {
     page: Number.isInteger(rawPage) && rawPage > 0 && rawPage <= 1000 ? rawPage : 1,
     difficulty: difficulties.find((value) => value === rawDifficulty),
     mode: modes.find((value) => value === rawMode),
     category: params.get('category')?.trim().slice(0, 64) || undefined,
+    period: categories.find(({ id }) => id === rawPeriod)?.id,
   }
   const update = (changes: Partial<ChallengeFilters>) => {
     setParams((previous) => {
@@ -36,6 +42,10 @@ export function useChallengeFilter() {
 
 export function FilterChallenges({ filters, update }: { filters: ChallengeFilters; update: (changes: Partial<ChallengeFilters>) => void }) {
   return <div className="mb-6 space-y-3">
+    <div className="flex flex-wrap gap-2" aria-label="Категория испытаний">
+      <button className={!filters.period ? 'filter-active' : 'filter-button'} onClick={() => update({ period: undefined })}>Все испытания</button>
+      {categories.map(({ id, label }) => <button key={id} className={filters.period === id ? 'filter-active' : 'filter-button'} onClick={() => update({ period: id })}>{label}</button>)}
+    </div>
     <div className="flex flex-wrap items-center gap-2 rounded-lg border border-white/8 bg-white/[0.025] p-1 text-xs">
       <button className={!filters.difficulty ? 'filter-active' : 'filter-button'} onClick={() => update({ difficulty: undefined })}>Все</button>
       {difficulties.map((difficulty) => <button key={difficulty} className={filters.difficulty === difficulty ? 'filter-active' : 'filter-button'} onClick={() => update({ difficulty })}>{difficultyLabel[difficulty][0] + difficultyLabel[difficulty].slice(1).toLowerCase()}</button>)}

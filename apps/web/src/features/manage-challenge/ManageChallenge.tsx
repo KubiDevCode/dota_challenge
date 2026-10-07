@@ -5,19 +5,20 @@ import type { UseFormReturn } from 'react-hook-form'
 import { useState } from 'react'
 import type { ReactNode } from 'react'
 import { z } from 'zod'
-import { challengeDifficulties, challengeMetrics, challengeModes, createAdminChallenge, listAdminChallenges, matchModes, metricLabel, publicationStatuses, ruleSchema, updateAdminChallenge, type AdminChallenge, type ChallengeInput } from '../../entities/challenge'
+import { challengeDifficulties, challengeMetrics, challengeModes, challengePeriods, createAdminChallenge, listAdminChallenges, matchModes, metricLabel, publicationStatuses, ruleSchema, updateAdminChallenge, type AdminChallenge, type ChallengeInput } from '../../entities/challenge'
 import { ApiError } from '../../shared/api'
 
 const ruleFields = z.object({ rules: z.array(ruleSchema).min(1, 'Добавьте хотя бы одно правило') })
 const formSchema = z.object({
   title: z.string().trim().min(1, 'Введите название').max(200), description: z.string(), category: z.string().trim().min(1, 'Введите категорию').max(64),
   difficulty: z.enum(challengeDifficulties), mode: z.enum(challengeModes), xpReward: z.number().int().min(0).max(2147483647),
+  period: z.enum(challengePeriods),
   seasonPointsReward: z.number().int().min(0).max(2147483647), allowedMatchModes: z.array(z.number()), publicationStatus: z.enum(publicationStatuses),
-  availableFrom: z.string(), rules: ruleFields.shape.rules,
+  availableFrom: z.string(), availableUntil: z.string(), requiredHeroId: z.number().int().min(1).nullable(), requiredItemIdsText: z.string(), rules: ruleFields.shape.rules,
 })
 type FormValues = z.infer<typeof formSchema>
-const defaults: FormValues = { title: '', description: '', category: '', difficulty: 'EASY', mode: 'SINGLE_MATCH', xpReward: 0, seasonPointsReward: 0, allowedMatchModes: [], publicationStatus: 'DRAFT', availableFrom: '', rules: [{ metric: 'kills', operator: 'GTE', value: 1 }] }
-const labels: Record<string, string> = { EASY: 'Легко', MEDIUM: 'Средне', HARD: 'Сложно', PERSISTENT: 'Постоянное', SINGLE_MATCH: 'За один матч', DRAFT: 'Черновик', PUBLISHED: 'Опубликовано' }
+const defaults: FormValues = { title: '', description: '', category: '', difficulty: 'EASY', mode: 'SINGLE_MATCH', period: 'PERMANENT', xpReward: 0, seasonPointsReward: 0, allowedMatchModes: [], publicationStatus: 'DRAFT', availableFrom: '', availableUntil: '', requiredHeroId: null, requiredItemIdsText: '', rules: [{ metric: 'kills', operator: 'GTE', value: 1 }] }
+const labels: Record<string, string> = { EASY: 'Легко', MEDIUM: 'Средне', HARD: 'Сложно', PERSISTENT: 'Постоянное', SINGLE_MATCH: 'За один матч', DAILY: 'Ежедневный', WEEKLY: 'Еженедельный', MONTHLY: 'Ежемесячный', PERMANENT: 'Постоянный', DRAFT: 'Черновик', PUBLISHED: 'Опубликовано' }
 const inputClass = 'mt-1 w-full rounded-md border border-white/10 bg-[#111317] px-3 py-2 text-sm text-[#eeeae3] outline-none focus:border-[#ca5946]'
 const fieldLabel = 'block text-xs font-medium text-[#aaa69f]'
 const localDateTime = (value: string) => {
@@ -59,13 +60,22 @@ function ChallengeForm({ challenge, close }: { challenge?: AdminChallenge; close
   const [saveError, setSaveError] = useState('')
   const form = useForm<FormValues>({ resolver: zodResolver(formSchema), defaultValues: challenge ? {
     ...challenge, availableFrom: challenge.availableFrom ? localDateTime(challenge.availableFrom) : '',
+    availableUntil: challenge.availableUntil ? localDateTime(challenge.availableUntil) : '',
+    requiredItemIdsText: challenge.requiredItemIds.join(', '),
   } : defaults })
   const mutation = useMutation({ mutationFn: (values: ChallengeInput) => challenge ? updateAdminChallenge(challenge.id, values) : createAdminChallenge(values), onSuccess: async () => {
     await client.invalidateQueries({ queryKey: ['admin-challenges'] }); close()
   }, onError: (error) => setSaveError(serverError(error)) })
   const submit = form.handleSubmit((values) => {
     setSaveError('')
-    const body: ChallengeInput = { ...values, availableFrom: values.availableFrom ? new Date(values.availableFrom).toISOString() : null }
+    const requiredItemIds = values.requiredItemIdsText.trim() ? values.requiredItemIdsText.split(',').map((id) => Number(id.trim())) : []
+    if (requiredItemIds.some((id) => !Number.isSafeInteger(id) || id < 1) || new Set(requiredItemIds).size !== requiredItemIds.length) {
+      setSaveError('ID предметов должны быть уникальными положительными числами через запятую.')
+      return
+    }
+    const body: ChallengeInput = { ...values, availableFrom: values.availableFrom ? new Date(values.availableFrom).toISOString() : null,
+      availableUntil: values.availableUntil ? new Date(values.availableUntil).toISOString() : null,
+      requiredItemIds, requiredHeroId: values.requiredHeroId }
     mutation.mutate(body)
   })
   return <form className="profile-panel space-y-4" onSubmit={submit}>
@@ -75,10 +85,14 @@ function ChallengeForm({ challenge, close }: { challenge?: AdminChallenge; close
       <Field label="Категория" error={form.formState.errors.category?.message}><input className={inputClass} {...form.register('category')} /></Field>
       <Field label="Сложность"><select className={inputClass} {...form.register('difficulty')}>{challengeDifficulties.map((value) => <option key={value} value={value}>{labels[value]}</option>)}</select></Field>
       <Field label="Тип"><select className={inputClass} {...form.register('mode')}>{challengeModes.map((value) => <option key={value} value={value}>{labels[value]}</option>)}</select></Field>
+      <Field label="Период"><select className={inputClass} {...form.register('period')}>{challengePeriods.map((value) => <option key={value} value={value}>{labels[value]}</option>)}</select></Field>
       <Field label="Награда XP" error={form.formState.errors.xpReward?.message}><input className={inputClass} type="number" min="0" step="1" {...form.register('xpReward', { valueAsNumber: true })} /></Field>
       <Field label="Очки сезона" error={form.formState.errors.seasonPointsReward?.message}><input className={inputClass} type="number" min="0" step="1" {...form.register('seasonPointsReward', { valueAsNumber: true })} /></Field>
       <Field label="Статус"><select className={inputClass} {...form.register('publicationStatus')}>{publicationStatuses.map((value) => <option key={value} value={value}>{labels[value]}</option>)}</select></Field>
       <Field label="Доступно с"><input className={inputClass} type="datetime-local" {...form.register('availableFrom')} /></Field>
+      <Field label="Доступно до"><input className={inputClass} type="datetime-local" {...form.register('availableUntil')} /></Field>
+      <Field label="ID героя (необязательно)"><input className={inputClass} type="number" min="1" step="1" {...form.register('requiredHeroId', { setValueAs: (value) => value === '' ? null : Number(value) })} /></Field>
+      <Field label="Обязательные предметы (ID через запятую)"><input className={inputClass} placeholder="например: 1, 36, 63" {...form.register('requiredItemIdsText')} /></Field>
       <label className={`${fieldLabel} sm:col-span-2`}>Описание<textarea className={inputClass} rows={3} {...form.register('description')} /></label>
     </div>
     <fieldset className="rounded-lg border border-white/8 p-4"><legend className="px-2 text-sm font-semibold">Режимы матча</legend><div className="flex flex-wrap gap-5">{matchModes.map(({ id, label }) => <label key={id} className="flex items-center gap-2 text-sm text-[#c7c2b9]"><Controller control={form.control} name="allowedMatchModes" render={({ field }) => <input type="checkbox" value={id} checked={field.value.includes(id)} onChange={(event) => field.onChange(event.target.checked ? [...field.value, id] : field.value.filter((value) => value !== id))} />}/>{label}</label>)}</div></fieldset>

@@ -6,12 +6,16 @@ const { PrismaClient } = require('../apps/api/dist/database/generated/client')
 const { PrismaPg } = require('@prisma/adapter-pg')
 const { assertChallengeRule } = require('../packages/shared/dist/rule-engine/evaluate.js')
 
-const challenge = (category, title, description, difficulty, mode, xpReward, rules) => ({
+const challenge = (category, title, description, difficulty, mode, xpReward, rules, build = {}) => ({
   category, title, description, difficulty, mode, xpReward,
+  period: category === 'Ежедневные' ? 'DAILY' : category === 'Еженедельные' ? 'WEEKLY' : 'PERMANENT',
+  requiredHeroId: build.heroId ?? null,
+  requiredItemIds: build.itemIds ?? [],
   seasonPointsReward: Math.max(5, Math.round(xpReward / 10)),
   allowedMatchModes: [1, 22],
   publicationStatus: 'PUBLISHED',
   availableFrom: null,
+  availableUntil: null,
   rules: rules.map(([metric, operator, value]) => {
     const rule = { metric, operator, value }
     assertChallengeRule(rule)
@@ -56,6 +60,10 @@ const challenges = [
   challenge(permanent, 'Битва до последнего', 'Победи в матче продолжительностью не меньше 75 минут.', 'HARD', 'SINGLE_MATCH', 500, [['duration', 'GTE', 4500], ['win', 'EQ', true]]),
   challenge(permanent, 'Тотальный контроль', 'Участвуй минимум в 95% убийств команды и соверши 12 убийств.', 'HARD', 'PERSISTENT', 600, [['killParticipation', 'GTE', 0.95], ['kills', 'GTE', 12]]),
   challenge(permanent, 'Мастер на все руки', 'Победи, нанеся 40 000 урона героям и 5 000 урона строениям.', 'HARD', 'PERSISTENT', 600, [['win', 'EQ', true], ['heroDamage', 'GTE', 40000], ['towerDamage', 'GTE', 5000]]),
+
+  challenge(weekly, 'Клинок мести', 'Победи на Juggernaut с Battle Fury и Black King Bar.', 'HARD', 'SINGLE_MATCH', 360, [['win', 'EQ', true]], { heroId: 8, itemIds: [145, 116] }),
+  challenge(weekly, 'Неудержимый рывок', 'Победи на Axe с Blink Dagger и Blade Mail.', 'HARD', 'SINGLE_MATCH', 360, [['win', 'EQ', true]], { heroId: 2, itemIds: [1, 127] }),
+  challenge(weekly, 'Критический удар', 'Победи на Phantom Assassin с Battle Fury и Desolator.', 'HARD', 'SINGLE_MATCH', 360, [['win', 'EQ', true]], { heroId: 44, itemIds: [145, 168] }),
 ]
 
 const previousTitles = [
@@ -68,7 +76,7 @@ const previousTitles = [
 ]
 const previousTitleByTitle = new Map(challenges.map(({ title }, index) => [title, previousTitles[index]]))
 
-if (challenges.length !== 30) throw new Error(`Expected 30 challenges, got ${challenges.length}`)
+if (challenges.length !== 33) throw new Error(`Expected 33 challenges, got ${challenges.length}`)
 if (new Set(challenges.map(({ title }) => title)).size !== challenges.length) throw new Error('Challenge titles must be unique')
 
 const db = new PrismaClient({

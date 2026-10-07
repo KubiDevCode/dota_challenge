@@ -9,7 +9,7 @@ function fixture() {
   const challenges = Array.from({ length: 6 }, (_, index) => ({
     id: `00000000-0000-4000-8000-${String(index + 10).padStart(12, '0')}`,
     title: `Challenge ${index}`, description: 'Test', category: 'test', difficulty: 'EASY',
-    mode: index % 2 ? 'PERSISTENT' : 'SINGLE_MATCH', xpReward: 10,
+    mode: index % 2 ? 'PERSISTENT' : 'SINGLE_MATCH', period: 'PERMANENT', xpReward: 10,
     seasonPointsReward: 0, allowedMatchModes: [], publicationStatus: 'PUBLISHED',
     availableFrom: null, rules: [{ metric: 'kills', operator: 'GTE', numberValue: 2 }],
   }))
@@ -22,7 +22,9 @@ function fixture() {
     $queryRaw: async () => [{ id: owner }],
     challenge: { findUnique: async ({ where }) => challenges.find(c => c.id === where.id) ?? null },
     userChallenge: {
-      findUnique: async ({ where }) => enrollments.find(e => e.userId === where.userId_challengeId.userId && e.challengeId === where.userId_challengeId.challengeId) ?? null,
+      findUnique: async ({ where }) => enrollments.find(e => e.userId === where.userId_challengeId_periodKey.userId
+        && e.challengeId === where.userId_challengeId_periodKey.challengeId
+        && e.periodKey === where.userId_challengeId_periodKey.periodKey) ?? null,
       count: async ({ where }) => enrollments.filter(e => e.userId === where.userId && e.status === where.status).length,
       create: async ({ data }) => {
         const row = { id: String(++nextId), ...data, attemptsChecked: 0, completedAt: null, completedByMatchId: null }

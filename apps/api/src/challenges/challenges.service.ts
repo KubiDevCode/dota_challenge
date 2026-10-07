@@ -11,6 +11,20 @@ type EnrollmentWithChallenge = UserChallenge & {
   completedByMatch?: { id: string; startedAt: Date; duration: number | null; matchMode: number | null } | null
 }
 
+function periodWindow(period: 'DAILY' | 'WEEKLY' | 'MONTHLY' | 'PERMANENT', now: Date) {
+  const start = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()))
+  if (period === 'WEEKLY') start.setUTCDate(start.getUTCDate() - ((start.getUTCDay() + 6) % 7))
+  if (period === 'MONTHLY') start.setUTCDate(1)
+  const end = new Date(start)
+  if (period === 'DAILY') end.setUTCDate(end.getUTCDate() + 1)
+  if (period === 'WEEKLY') end.setUTCDate(end.getUTCDate() + 7)
+  if (period === 'MONTHLY') end.setUTCMonth(end.getUTCMonth() + 1)
+  return {
+    key: period === 'PERMANENT' ? 'PERMANENT' : start.toISOString().slice(0, 10),
+    expiresAt: period === 'PERMANENT' ? null : end,
+  }
+}
+
 function publicChallenge(challenge: ChallengeWithRules) {
   return {
     id: challenge.id,
@@ -22,6 +36,11 @@ function publicChallenge(challenge: ChallengeWithRules) {
     xpReward: challenge.xpReward,
     seasonPointsReward: challenge.seasonPointsReward,
     allowedMatchModes: challenge.allowedMatchModes,
+    availableFrom: challenge.availableFrom,
+    availableUntil: challenge.availableUntil,
+    requiredHeroId: challenge.requiredHeroId,
+    requiredItemIds: challenge.requiredItemIds,
+    period: challenge.period,
     rules: challenge.rules.map((rule): SharedRule => ({
       metric: rule.metric, operator: rule.operator,
       value: rule.metric === 'win' ? rule.booleanValue! : rule.numberValue!,
@@ -35,6 +54,7 @@ function publicEnrollment(enrollment: EnrollmentWithChallenge) {
     challenge: publicChallenge(enrollment.challenge),
     status: enrollment.status,
     activatedAt: enrollment.activatedAt,
+    expiresAt: enrollment.expiresAt,
     attemptsChecked: enrollment.attemptsChecked,
     completedAt: enrollment.completedAt,
     completedByMatchId: enrollment.completedByMatchId,
@@ -52,6 +72,12 @@ export class ChallengesService {
   }
 
   async listMine(userId: string) {
+    const now = new Date()
+    await this.repository.db.userChallenge.updateMany({
+      where: { userId, status: 'ACTIVE', OR: [
+        { expiresAt: { lte: now } }, { challenge: { availableUntil: { lte: now } } },
+      ] }, data: { status: 'EXPIRED' },
+    })
     return (await this.repository.findUserChallenges(userId)).map(publicEnrollment)
   }
 
@@ -63,18 +89,26 @@ export class ChallengesService {
         // until commit, so the next request counts the row created by the previous one.
         const locked = await tx.$queryRaw<{ id: string }[]>`SELECT id FROM "User" WHERE id = ${userId}::uuid FOR UPDATE`
         if (locked.length === 0) throw new NotFoundException('User not found')
+        const now = new Date()
+        await tx.userChallenge.updateMany({
+          where: { userId, status: 'ACTIVE', OR: [
+            { expiresAt: { lte: now } }, { challenge: { availableUntil: { lte: now } } },
+          ] }, data: { status: 'EXPIRED' },
+        })
 
         const challenge = await tx.challenge.findUnique({ where: { id: challengeId }, include: { rules: true } })
         if (!challenge) throw new NotFoundException('Challenge not found')
-        if (challenge.publicationStatus !== 'PUBLISHED' || (challenge.availableFrom && challenge.availableFrom > new Date())) {
+        if (challenge.publicationStatus !== 'PUBLISHED' || (challenge.availableFrom && challenge.availableFrom > now)
+          || (challenge.availableUntil && challenge.availableUntil <= now)) {
           throw new ConflictException('Challenge is not available')
         }
-        const existing = await tx.userChallenge.findUnique({ where: { userId_challengeId: { userId, challengeId } } })
+        const window = periodWindow(challenge.period, now)
+        const existing = await tx.userChallenge.findUnique({ where: { userId_challengeId_periodKey: { userId, challengeId, periodKey: window.key } } })
         if (existing) throw new ConflictException('Challenge already activated')
         const active = await tx.userChallenge.count({ where: { userId, status: 'ACTIVE' } })
         if (active >= 3) throw new ConflictException('Maximum of three active challenges')
         const enrollment = await tx.userChallenge.create({
-          data: { userId, challengeId, status: 'ACTIVE', activatedAt: new Date() },
+          data: { userId, challengeId, periodKey: window.key, expiresAt: window.expiresAt, status: 'ACTIVE', activatedAt: now },
         })
         return publicEnrollment({ ...enrollment, challenge })
       })

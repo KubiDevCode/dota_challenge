@@ -1,6 +1,6 @@
 import { Type } from 'class-transformer'
 import { IsEnum, IsInt, IsOptional, IsString, Max, MaxLength, Min } from 'class-validator'
-import { ChallengeDifficulty, ChallengeMode } from '../database/generated/enums'
+import { ChallengeDifficulty, ChallengeMode, ChallengePeriod } from '../database/generated/enums'
 
 export class ListChallengesQueryDto {
   @IsOptional()
@@ -24,6 +24,10 @@ export class ListChallengesQueryDto {
   @IsOptional()
   @IsEnum(ChallengeMode)
   mode?: ChallengeMode
+
+  @IsOptional()
+  @IsEnum(ChallengePeriod)
+  period?: ChallengePeriod
 
   @IsOptional()
   @IsString()

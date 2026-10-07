@@ -34,6 +34,7 @@ function statsData(player: ProviderPlayerMatch) {
     towerDamage: player.towerDamage ?? null,
     wardsPlaced: player.wardsPlaced ?? null,
     heroId: player.heroId ?? null,
+    itemIds: player.itemIds ? [...player.itemIds] : [],
   }
 }
 
@@ -118,7 +119,10 @@ export class MatchProcessingService {
         update: statsUpdate(player),
       })
       const enrollments = await tx.userChallenge.findMany({
-        where: { userId, status: 'ACTIVE', activatedAt: { lt: match.startedAt } },
+        where: { userId, status: 'ACTIVE', activatedAt: { lt: match.startedAt }, AND: [
+          { OR: [{ expiresAt: null }, { expiresAt: { gt: match.startedAt } }] },
+          { challenge: { OR: [{ availableUntil: null }, { availableUntil: { gt: match.startedAt } }] } },
+        ] },
         include: { challenge: { include: { rules: true } } },
         orderBy: { activatedAt: 'asc' },
       })
@@ -139,26 +143,35 @@ export class MatchProcessingService {
         const result = evaluateChallengeRules(
           enrollment.challenge.rules.map(toRule), metricValues(stats, persistedMatch.duration),
         )
-        const details = JSON.parse(JSON.stringify(result)) as Prisma.InputJsonValue
+        const buildReady = enrollment.challenge.requiredHeroId === null
+          || stats.heroId === enrollment.challenge.requiredHeroId
+        const requiredItems = enrollment.challenge.requiredItemIds
+        const missingItems = requiredItems.length > 0 && !requiredItems.every((itemId) => stats.itemIds.includes(itemId))
+        const finalStatus = result.status === 'PASS' && (!buildReady || missingItems) ? 'FAIL' : result.status
+        const details = JSON.parse(JSON.stringify({ ...result,
+          ...(enrollment.challenge.requiredHeroId !== null && { requiredHeroId: enrollment.challenge.requiredHeroId, actualHeroId: stats.heroId }),
+          ...(requiredItems.length > 0 && { requiredItemIds: requiredItems, actualItemIds: stats.itemIds }),
+          ...(finalStatus !== result.status && { status: finalStatus, reason: 'BUILD_REQUIREMENTS_FAILED' }),
+        })) as Prisma.InputJsonValue
         await tx.challengeEvaluation.upsert({
           where: { userChallengeId_matchId: { userChallengeId: enrollment.id, matchId: match.id } },
           create: { userChallengeId: enrollment.id, matchId: match.id,
-            status: result.status, explanation: result.reason, details },
-          update: { status: result.status, explanation: result.reason, details },
+            status: finalStatus, explanation: finalStatus === result.status ? result.reason : 'BUILD_REQUIREMENTS_FAILED', details },
+          update: { status: finalStatus, explanation: finalStatus === result.status ? result.reason : 'BUILD_REQUIREMENTS_FAILED', details },
         })
-        if (result.status === 'PENDING') continue
+        if (finalStatus === 'PENDING') continue
 
-        const nextStatus = result.status === 'PASS' ? 'SUCCEEDED'
+        const nextStatus = finalStatus === 'PASS' ? 'SUCCEEDED'
           : enrollment.challenge.mode === 'SINGLE_MATCH' ? 'FAILED' : 'ACTIVE'
         const transition = await tx.userChallenge.updateMany({
           where: { id: enrollment.id, status: 'ACTIVE' },
           data: {
             status: nextStatus, attemptsChecked: { increment: 1 },
-            ...(result.status === 'PASS' && { completedAt: new Date(), completedByMatchId: match.id }),
+            ...(finalStatus === 'PASS' && { completedAt: new Date(), completedByMatchId: match.id }),
           },
         })
         if (transition.count !== 1) throw new Error('Challenge changed while processing')
-        if (result.status !== 'PASS') continue
+        if (finalStatus !== 'PASS') continue
 
         // A delayed match can belong to a season that has since ended. A draft
         // season never earns points. A match outside all seasons earns XP only.

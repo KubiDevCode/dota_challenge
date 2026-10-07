@@ -86,6 +86,11 @@ function playerMatch(raw: unknown, match: JsonRecord, durationSeconds: number | 
 
   return {
     accountId,
+    ...(() => {
+      const itemIds = Array.from({ length: 6 }, (_, index) => optionalInteger(player[`item_${index}`], `invalid item ${index}`))
+        .filter((itemId): itemId is number => itemId !== undefined && itemId > 0)
+      return { itemIds }
+    })(),
     ...(durationSeconds !== undefined && { duration: durationSeconds }),
     ...(win !== undefined && { win }),
     ...(teamKills !== undefined && { teamKills }),

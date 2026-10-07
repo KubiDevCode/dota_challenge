@@ -5,6 +5,8 @@ export type ProviderGameMode = 'RANKED' | 'ALL_PICK' | 'UNSUPPORTED'
 
 export interface ProviderPlayerMatch extends NormalizedPlayerMatch {
   readonly accountId: number
+  /** Items in the player's six inventory slots at the end of the match. */
+  readonly itemIds?: readonly number[]
   /** Kills by this player's team, when available for participation calculations. */
   readonly teamKills?: number
 }

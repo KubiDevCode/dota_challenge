@@ -6,6 +6,7 @@ export const metricLabel: Record<typeof challengeMetrics[number], string> = {
   lastHits: 'Добивания', heroDamage: 'Урон героям', towerDamage: 'Урон строениям', wardsPlaced: 'Варды', duration: 'Длительность матча (сек)', heroId: 'ID героя',
 }
 export const challengeModes = ['PERSISTENT', 'SINGLE_MATCH'] as const
+export const challengePeriods = ['DAILY', 'WEEKLY', 'MONTHLY', 'PERMANENT'] as const
 export const challengeDifficulties = ['EASY', 'MEDIUM', 'HARD'] as const
 export const publicationStatuses = ['DRAFT', 'PUBLISHED'] as const
 export const matchModes = [{ id: 1, label: 'All Pick' }, { id: 22, label: 'Ranked All Pick' }] as const
@@ -26,12 +27,13 @@ export const ruleSchema = z.object({
 })
 
 const adminChallengeSchema = z.object({
-  id: z.string(), title: z.string(), description: z.string(), category: z.string(), difficulty: z.enum(challengeDifficulties), mode: z.enum(challengeModes),
+  id: z.string(), title: z.string(), description: z.string(), category: z.string(), difficulty: z.enum(challengeDifficulties), mode: z.enum(challengeModes), period: z.enum(challengePeriods).default('PERMANENT'),
   xpReward: z.number(), seasonPointsReward: z.number(), allowedMatchModes: z.array(z.number()), publicationStatus: z.enum(publicationStatuses),
-  availableFrom: z.string().nullable(), rules: z.array(ruleSchema),
+  availableFrom: z.string().nullable().default(null), availableUntil: z.string().nullable().default(null),
+  requiredHeroId: z.number().nullable().default(null), requiredItemIds: z.array(z.number()).default([]), rules: z.array(ruleSchema),
 })
 export type AdminChallenge = z.infer<typeof adminChallengeSchema>
-export type ChallengeInput = Omit<AdminChallenge, 'id' | 'availableFrom' | 'rules'> & { availableFrom: string | null; rules: z.infer<typeof ruleSchema>[] }
+export type ChallengeInput = Omit<AdminChallenge, 'id' | 'availableFrom' | 'availableUntil' | 'rules'> & { availableFrom: string | null; availableUntil: string | null; rules: z.infer<typeof ruleSchema>[] }
 
 export function listAdminChallenges(signal?: AbortSignal) {
   return apiRequest<AdminChallenge[]>('/admin/challenges', { signal }).then((rows) => z.array(adminChallengeSchema).parse(rows))

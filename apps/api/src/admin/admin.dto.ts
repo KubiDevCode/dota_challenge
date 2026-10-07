@@ -1,6 +1,6 @@
 import { Type } from 'class-transformer'
 import { Allow, ArrayMinSize, ArrayUnique, IsArray, IsEnum, IsIn, IsInt, IsISO8601, IsOptional, IsString, Matches, Max, MaxLength, Min, ValidateIf, ValidateNested } from 'class-validator'
-import { ChallengeDifficulty, ChallengeMode, PublicationStatus, RuleMetric, RuleOperator, SeasonStatus } from '../database/generated/enums'
+import { ChallengeDifficulty, ChallengeMode, ChallengePeriod, PublicationStatus, RuleMetric, RuleOperator, SeasonStatus } from '../database/generated/enums'
 
 const INT_MAX = 2147483647
 
@@ -32,6 +32,9 @@ export class CreateChallengeDto {
   @IsEnum(ChallengeMode)
   mode!: ChallengeMode
 
+  @ValidateIf((_object, value) => value !== undefined) @IsEnum(ChallengePeriod)
+  period?: ChallengePeriod
+
   @IsInt() @Min(0) @Max(INT_MAX)
   xpReward!: number
 
@@ -46,6 +49,15 @@ export class CreateChallengeDto {
 
   @IsOptional() @IsISO8601({ strict: true })
   availableFrom?: string | null
+
+  @IsOptional() @IsISO8601({ strict: true })
+  availableUntil?: string | null
+
+  @IsOptional() @IsInt() @Min(1) @Max(INT_MAX)
+  requiredHeroId?: number | null
+
+  @ValidateIf((_object, value) => value !== undefined) @IsArray() @ArrayUnique() @IsInt({ each: true }) @Min(1, { each: true }) @Max(INT_MAX, { each: true })
+  requiredItemIds?: number[]
 
   @IsArray() @ArrayMinSize(1) @ValidateNested({ each: true }) @Type(() => AdminRuleDto)
   rules!: AdminRuleDto[]
@@ -67,6 +79,9 @@ export class PatchChallengeDto {
   @ValidateIf((_object, value) => value !== undefined) @IsEnum(ChallengeMode)
   mode?: ChallengeMode
 
+  @ValidateIf((_object, value) => value !== undefined) @IsEnum(ChallengePeriod)
+  period?: ChallengePeriod
+
   @ValidateIf((_object, value) => value !== undefined) @IsInt() @Min(0) @Max(INT_MAX)
   xpReward?: number
 
@@ -81,6 +96,15 @@ export class PatchChallengeDto {
 
   @IsOptional() @IsISO8601({ strict: true })
   availableFrom?: string | null
+
+  @IsOptional() @IsISO8601({ strict: true })
+  availableUntil?: string | null
+
+  @ValidateIf((_object, value) => value !== undefined && value !== null) @IsInt() @Min(1) @Max(INT_MAX)
+  requiredHeroId?: number | null
+
+  @ValidateIf((_object, value) => value !== undefined) @IsArray() @ArrayUnique() @IsInt({ each: true }) @Min(1, { each: true }) @Max(INT_MAX, { each: true })
+  requiredItemIds?: number[]
 
   @ValidateIf((_object, value) => value !== undefined) @IsArray() @ArrayMinSize(1) @ValidateNested({ each: true }) @Type(() => AdminRuleDto)
   rules?: AdminRuleDto[]

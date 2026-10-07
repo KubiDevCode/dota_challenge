@@ -34,6 +34,12 @@ enum ChallengeMode {
   PERSISTENT
   SINGLE_MATCH
 }
+enum ChallengePeriod {
+  DAILY
+  WEEKLY
+  MONTHLY
+  PERMANENT
+}
 enum PublicationStatus {
   DRAFT
   PUBLISHED
@@ -62,6 +68,7 @@ enum UserChallengeStatus {
   CANCELLED
   SUCCEEDED
   FAILED
+  EXPIRED
 }
 enum EvaluationStatus {
   PASS
@@ -120,12 +127,16 @@ model Challenge {
   category           String              @db.VarChar(64)
   difficulty         ChallengeDifficulty
   mode               ChallengeMode
+  period             ChallengePeriod      @default(PERMANENT)
   xpReward           Int
   seasonPointsReward Int                 @default(0)
   // Empty means both supported MVP matchmaking modes are permitted.
   allowedMatchModes  Int[]
   publicationStatus  PublicationStatus   @default(DRAFT)
   availableFrom      DateTime?           @db.Timestamptz(3)
+  availableUntil     DateTime?           @db.Timestamptz(3)
+  requiredHeroId     Int?
+  requiredItemIds    Int[]               @default([])
   createdAt          DateTime            @default(now()) @db.Timestamptz(3)
   updatedAt          DateTime            @updatedAt @db.Timestamptz(3)
   rules              ChallengeRule[]
@@ -151,6 +162,8 @@ model UserChallenge {
   id                 String              @id @default(uuid()) @db.Uuid
   userId             String              @db.Uuid
   challengeId        String              @db.Uuid
+  periodKey          String              @default("PERMANENT") @db.VarChar(16)
+  expiresAt          DateTime?            @db.Timestamptz(3)
   activatedAt        DateTime            @default(now()) @db.Timestamptz(3)
   status             UserChallengeStatus @default(ACTIVE)
   attemptsChecked    Int                 @default(0)
@@ -164,7 +177,7 @@ model UserChallenge {
   evaluations        ChallengeEvaluation[]
   reward             RewardLedger?
 
-  @@unique([userId, challengeId])
+  @@unique([userId, challengeId, periodKey])
   @@unique([id, userId])
   @@index([userId, status, activatedAt])
   @@index([challengeId])
@@ -201,6 +214,7 @@ model PlayerMatchStats {
   towerDamage       Int?
   wardsPlaced       Int?
   heroId            Int?
+  itemIds           Int[]    @default([])
   createdAt         DateTime @default(now()) @db.Timestamptz(3)
   updatedAt         DateTime @updatedAt @db.Timestamptz(3)
   match             Match    @relation(fields: [matchId], references: [id], onDelete: Restrict)

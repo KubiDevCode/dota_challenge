@@ -17,13 +17,16 @@ export class ChallengesRepository {
     const where: Prisma.ChallengeWhereInput = {
       publicationStatus: 'PUBLISHED',
       OR: [{ availableFrom: null }, { availableFrom: { lte: now } }],
+      AND: [{ OR: [{ availableUntil: null }, { availableUntil: { gt: now } }] }],
       difficulty: query.difficulty,
       mode: query.mode,
+      period: query.period,
       category: query.category,
     }
+    const daily = query.period === 'DAILY'
     return this.db.challenge.findMany({
       where, include: challengeInclude, orderBy: [{ availableFrom: 'desc' }, { id: 'asc' }],
-      skip: (query.page - 1) * query.limit, take: query.limit,
+      skip: daily ? 0 : (query.page - 1) * query.limit, take: daily ? 3 : query.limit,
     })
   }
 

@@ -27,9 +27,12 @@ function challengeResponse(challenge: ChallengeWithRules) {
   return {
     id: challenge.id, title: challenge.title, description: challenge.description,
     category: challenge.category, difficulty: challenge.difficulty, mode: challenge.mode,
+    period: challenge.period,
     xpReward: challenge.xpReward, seasonPointsReward: challenge.seasonPointsReward,
     allowedMatchModes: challenge.allowedMatchModes, publicationStatus: challenge.publicationStatus,
     availableFrom: challenge.availableFrom, createdAt: challenge.createdAt, updatedAt: challenge.updatedAt,
+    availableUntil: challenge.availableUntil, requiredHeroId: challenge.requiredHeroId,
+    requiredItemIds: challenge.requiredItemIds,
     rules: challenge.rules.map((rule): SharedRule => ({
       metric: rule.metric, operator: rule.operator,
       value: rule.metric === 'win' ? rule.booleanValue! : rule.numberValue!,
@@ -42,6 +45,10 @@ function dateOrNull(value: string | null | undefined): Date | null | undefined {
   const date = new Date(value)
   if (Number.isNaN(date.getTime())) throw new BadRequestException('Invalid date')
   return date
+}
+
+function availabilityDates(from: Date | null, until: Date | null): void {
+  if (from && until && from >= until) throw new BadRequestException('availableFrom must be before availableUntil')
 }
 
 function seasonDates(startsAt: Date, endsAt: Date): void {
@@ -70,14 +77,21 @@ export class AdminService {
 
   async createChallenge(body: CreateChallengeDto) {
     const rules = body.rules.map(ruleData)
+    const availableFrom = dateOrNull(body.availableFrom) ?? null
+    const availableUntil = dateOrNull(body.availableUntil) ?? null
+    availabilityDates(availableFrom, availableUntil)
     const challenge = await this.db.challenge.create({
       data: {
         title: body.title.trim(), description: body.description, category: body.category.trim(),
         difficulty: body.difficulty, mode: body.mode, xpReward: body.xpReward,
+        period: body.period ?? 'PERMANENT',
         seasonPointsReward: body.seasonPointsReward ?? 0,
         allowedMatchModes: body.allowedMatchModes ?? [],
         publicationStatus: body.publicationStatus ?? 'DRAFT',
-        availableFrom: dateOrNull(body.availableFrom) ?? null,
+        availableFrom,
+        availableUntil,
+        requiredHeroId: body.requiredHeroId ?? null,
+        requiredItemIds: body.requiredItemIds ?? [],
         rules: { create: rules },
       },
       include: { rules: true },
@@ -89,8 +103,11 @@ export class AdminService {
     nonemptyPatch(body)
     const rules = body.rules?.map(ruleData)
     return this.db.$transaction(async (tx) => {
-      const current = await tx.challenge.findUnique({ where: { id }, select: { id: true } })
+      const current = await tx.challenge.findUnique({ where: { id }, select: { id: true, availableFrom: true, availableUntil: true } })
       if (!current) throw new NotFoundException('Challenge not found')
+      const availableFrom = body.availableFrom !== undefined ? dateOrNull(body.availableFrom) ?? null : current.availableFrom
+      const availableUntil = body.availableUntil !== undefined ? dateOrNull(body.availableUntil) ?? null : current.availableUntil
+      availabilityDates(availableFrom, availableUntil)
       const challenge = await tx.challenge.update({
         where: { id },
         data: {
@@ -99,11 +116,15 @@ export class AdminService {
           ...(body.category !== undefined && { category: body.category.trim() }),
           ...(body.difficulty !== undefined && { difficulty: body.difficulty }),
           ...(body.mode !== undefined && { mode: body.mode }),
+          ...(body.period !== undefined && { period: body.period }),
           ...(body.xpReward !== undefined && { xpReward: body.xpReward }),
           ...(body.seasonPointsReward !== undefined && { seasonPointsReward: body.seasonPointsReward }),
           ...(body.allowedMatchModes !== undefined && { allowedMatchModes: body.allowedMatchModes }),
           ...(body.publicationStatus !== undefined && { publicationStatus: body.publicationStatus }),
-          ...(body.availableFrom !== undefined && { availableFrom: dateOrNull(body.availableFrom) }),
+          ...(body.availableFrom !== undefined && { availableFrom }),
+          ...(body.availableUntil !== undefined && { availableUntil }),
+          ...(body.requiredHeroId !== undefined && { requiredHeroId: body.requiredHeroId }),
+          ...(body.requiredItemIds !== undefined && { requiredItemIds: body.requiredItemIds }),
           ...(rules !== undefined && { rules: { deleteMany: {}, create: rules } }),
         },
         include: { rules: true },
